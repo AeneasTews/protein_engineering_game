@@ -9,6 +9,9 @@ from typing import Optional, List, Tuple, Dict
 logger = logging.getLogger(__name__)
 
 
+REQUIRED_COLUMNS = {"mutant", "mutated_sequence", "DMS_score"}
+
+
 @dataclass
 class Protein:
     pdb_id: str
@@ -88,7 +91,6 @@ def load_protein_from_csv(path: Path) -> Optional[Protein]:
         logger.error(f"An error occurred whilst trying to parse: {path}")
         return None
 
-    REQUIRED_COLUMNS = {"mutant", "mutated_sequence", "DMS_score"}
     missing_columns = REQUIRED_COLUMNS - set(df.columns)
     if missing_columns:
         logger.error(f"Columns: {missing_columns} are missing from {path}; Unable to load")

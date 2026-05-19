@@ -1,3 +1,4 @@
 pyproject.toml
 __pycache__
 uv.lock
+backend/dms_data/
