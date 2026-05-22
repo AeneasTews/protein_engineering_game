@@ -39,11 +39,16 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
 
     final updatedMutations = List<(int pos, String aa)>.from(current.currentMutations);
     final index = updatedMutations.indexWhere((m) => m.$1 == event.position);
+    final wildtypeAa = current.protein.wildtypeSequence[event.position - 1];
 
     if (index != -1) {
-      updatedMutations[index] = (event.position, event.aminoAcid);
+      if (updatedMutations[index].$2 != event.aminoAcid && event.aminoAcid != wildtypeAa) {
+        updatedMutations[index] = (event.position, event.aminoAcid);
+      } else {
+        updatedMutations.removeAt(index);
+      }
     } else {
-      updatedMutations.add((event.position, event.aminoAcid));
+      if (event.aminoAcid != wildtypeAa) updatedMutations.add((event.position, event.aminoAcid));
     }
 
     emit(current.copyWith(currentMutations: updatedMutations));

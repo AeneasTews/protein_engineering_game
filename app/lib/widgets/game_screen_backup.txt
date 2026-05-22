@@ -1,0 +1,177 @@
+import 'sequence_panel.dart';
+import 'structure_panel.dart';
+import '../blocs/experiment/experiment_bloc.dart';
+import '../blocs/session_manager/session_manager_bloc.dart';
+import '../blocs/structure/structure_bloc.dart';
+import '../data/models/protein.dart';
+import '../data/repositories/protein_repository.dart';
+import "package:flutter/material.dart";
+import "package:flutter_bloc/flutter_bloc.dart";
+import 'history_panel.dart';
+
+class GameScreen extends StatefulWidget {
+  final Protein protein;
+  final ProteinRepository proteinRepository;
+
+  const GameScreen({
+    super.key,
+    required this.protein,
+    required this.proteinRepository,
+  });
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadStructure();
+  }
+
+  Future<void> _loadStructure() async {
+    try {
+      final pdbData = await widget.proteinRepository.getPdb(widget.protein.pdbId);
+      if (mounted) {
+        context.read<StructureBloc>().add(StructureLoadRequested(pdbData: pdbData));
+      }
+    } catch (_) {
+
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<ExperimentBloc, ExperimentState>(
+      listenWhen: (_, next) => next is ExperimentFinished,
+      listener: (context, state) async {
+        if (state is ExperimentFinished) {
+          await _showFinishedDialog(context, state);
+          if (mounted) {
+            Navigator.of(context).pop();
+            context.read<SessionManagerBloc>().add(const SessionManagerClose());
+          }
+        }
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            _GameTopBar(protein: widget.protein),
+            const Divider(height: 1),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: 320, child: SequencePanel(protein: widget.protein)),
+                  const VerticalDivider(width: 1),
+                  const Expanded(child: StructurePanel()),
+                  const VerticalDivider(width: 1),
+                  const SizedBox(width: 300, child: HistoryPanel())
+                ]
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
+Future<void> _showFinishedDialog(BuildContext context, ExperimentFinished state) {
+  return showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: const Text("Experiment Complete"),
+      content: SizedBox(
+        width: 340,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ScoreRow(
+              label: "YOUR BEST",
+              value: state.bestScore,
+            ),
+            const SizedBox(height: 12),
+            _ScoreRow(
+              label: "SERVER HIGH SCORE",
+              value: state.highscore.score
+            ),
+            const SizedBox(height: 24),
+            if (state.bestScore >= state.highscore.score)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: const Text(
+                  "🏆 New High Score!"
+                )
+              )
+          ]
+        )
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text("Back to Library")
+        )
+      ],
+    )
+  );
+}
+
+class _ScoreRow extends StatelessWidget {
+  final String label;
+  final double value;
+
+  const _ScoreRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(value.toStringAsFixed(3))
+      ]
+    );
+  }
+}
+
+class _GameTopBar extends StatelessWidget {
+  final Protein protein;
+
+  const _GameTopBar({required this.protein});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Text(protein.pdbId),
+          const SizedBox(width: 12),
+          Text(protein.name),
+          const Spacer(),
+          BlocBuilder<ExperimentBloc, ExperimentState>(
+            builder: (context, state) {
+              if (state is! ExperimentActive) return const SizedBox.shrink();
+              return Row(
+                children: [
+                  Text("ROUND"),
+                  const SizedBox(width: 8),
+                  Text(
+                    "${state.turnCount} / 20",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: state.turnCount >= 18 ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary
+                    )
+                  )
+                ]
+              );
+            }
+          )
+        ]
+      )
+    );
+  }
+}

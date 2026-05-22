@@ -1,0 +1,270 @@
+import 'package:app/data/repositories/session_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/experiment/experiment_bloc.dart';
+import '../blocs/protein_library/protein_library_bloc.dart';
+import '../blocs/session_manager/session_manager_bloc.dart';
+import '../blocs/structure/structure_bloc.dart';
+import "../data/models/protein.dart";
+import '../data/repositories/protein_repository.dart';
+import 'game_screen.dart';
+
+class ProteinLibraryScreen extends StatefulWidget {
+  const ProteinLibraryScreen({super.key});
+
+  @override
+  State<ProteinLibraryScreen> createState() => _ProteinLibraryScreenState();
+}
+
+class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
+  final _usernameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<SessionManagerBloc, SessionManagerState>(listener: (context, state) {
+      if (state is SessionManagerActive) {
+        final libraryState = context.read<ProteinLibraryBloc>().state;
+        if (libraryState is! ProteinLibraryLoaded) return;
+        final protein = libraryState.proteins.firstWhere((p) => p.pdbId == libraryState.selectedPdbId);
+
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (context) => ExperimentBloc(sessionRepository: context.read<SessionRepository>())..add(ExperimentStart(sessionId: state.sessionId, protein: protein))),
+              BlocProvider(create: (context) => StructureBloc(experimentBloc: context.read<ExperimentBloc>()))
+            ],
+            child: BlocProvider(
+              create: (context) => StructureBloc(experimentBloc: context.read<ExperimentBloc>()),
+              child: GameScreen(
+                protein: protein,
+                proteinRepository: context.read<ProteinRepository>(),
+              )
+            )
+          )
+        ));
+      }
+    },
+    child: Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(),
+            const SizedBox(height: 40),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _ProteinGrid()
+                  ),
+                  const SizedBox(width: 32),
+                  SizedBox(
+                    width: 320,
+                    child: _SessionPanel(
+                      usernameController: _usernameController
+                    )
+                  )
+                ]
+              )
+            )
+          ]
+        )
+      )
+    ));
+  }
+}
+
+class _Header extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("PROTEIN GYM"),
+        const SizedBox(height: 8),
+        Text("Engineering Lab"),
+        const SizedBox(height: 8),
+        Text("Select a protein and optimize its thermostability in 20 rounds.")
+      ]
+    );
+  }
+}
+
+class _ProteinGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProteinLibraryBloc, ProteinLibraryState>(
+      builder: (context, state) {
+        if (state is ProteinLibraryLoading) return const Center(child: CircularProgressIndicator());
+
+        if (state is ProteinLibraryError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(state.message),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => context.read<ProteinLibraryBloc>().add(const ProteinLibraryStarted()),
+                  child: const Text("Retry")
+                )
+              ]
+            )
+          );
+        }
+
+        if (state is ProteinLibraryLoaded) {
+          return GridView.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 220,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.4
+            ),
+            itemCount: state.proteins.length,
+            itemBuilder: (context, index) {
+              final protein = state.proteins[index];
+              final isSelected = state.selectedPdbId == protein.pdbId;
+              return _ProteinCard(
+                protein: protein,
+                isSelected: isSelected,
+                onTap: () => context.read<ProteinLibraryBloc>().add(ProteinSelected(protein.pdbId))
+              );
+            }
+          );
+        }
+
+        return const SizedBox.shrink();
+      }
+    );
+  }
+}
+
+class _ProteinCard extends StatelessWidget {
+  final Protein protein;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ProteinCard({required this.protein, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.secondaryFixedDim,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.tertiaryFixedDim,
+            width: isSelected ? 1.5 : 1
+          )
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              protein.pdbId,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              protein.name,
+              overflow: TextOverflow.ellipsis
+            ),
+            const Spacer(),
+            Text(
+              "${protein.wildtypeSequence.length} AA"
+            )
+          ]
+        )
+      )
+    );
+  }
+}
+
+class _SessionPanel extends StatelessWidget {
+  final TextEditingController usernameController;
+
+  const _SessionPanel({required this.usernameController});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProteinLibraryBloc, ProteinLibraryState>(
+      builder: (context, libraryState) {
+        final hasSelection = libraryState is ProteinLibraryLoaded && libraryState.selectedPdbId != null;
+
+        return BlocBuilder<SessionManagerBloc, SessionManagerState>(
+          builder: (context, sessionState) {
+            final isLoading = sessionState is SessionManagerLoading;
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all()
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Start Experiment"),
+                  const SizedBox(height: 24),
+
+                  Text("Username"),
+                  const SizedBox(height: 8),
+
+                  TextField(
+                    controller: usernameController
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text("PROTEIN"),
+                  const SizedBox(height: 8),
+
+                  Text(
+                    hasSelection ? libraryState.selectedPdbId! : "None selected"
+                  ),
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: (hasSelection && !isLoading) ? () {
+                        final username = usernameController.text.trim();
+                        if (username.isEmpty) return;
+                        final pdbId = libraryState.selectedPdbId!;
+                        context.read<SessionManagerBloc>().add(
+                          SessionManagerCreate(
+                            username: username,
+                            pdbId: pdbId
+                          )
+                        );
+                      } : null,
+                      child: isLoading ? const CircularProgressIndicator() : const Text("Begin Experiment")
+                    )
+                  ),
+
+                  if (sessionState is SessionManagerError) ...[
+                    const SizedBox(height: 12),
+                    Text(sessionState.message)
+                  ]
+                ]
+              )
+            );
+          }
+        );
+      }
+    );
+  }
+}

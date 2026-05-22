@@ -29,7 +29,7 @@ class StructureBloc extends Bloc<StructureEvent, StructureState> {
   }
 
   void _onLoadRequested(StructureLoadRequested event, Emitter<StructureState> emit) {
-    emit(const StructureReady(highlightedMutations: []));
+    emit(StructureReady(highlightedMutations: const [], pdbData: event.pdbData));
   }
 
   void _onResidueSelected(ResidueSelected event, Emitter<StructureState> emit) {

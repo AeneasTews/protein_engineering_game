@@ -14,8 +14,9 @@ final class StructureInitial extends StructureState {
 final class StructureReady extends StructureState {
   final int? selectedPosition;
   final List<(int pos, String aa)> highlightedMutations;
+  final String pdbData;
 
-  const StructureReady({this.selectedPosition, required this.highlightedMutations});
+  const StructureReady({this.selectedPosition, required this.highlightedMutations, required this.pdbData});
 
   StructureReady copyWith({
     int? selectedPosition,
@@ -23,7 +24,8 @@ final class StructureReady extends StructureState {
     bool clearSelection = false,
   }) => StructureReady(
     selectedPosition: clearSelection ? null : selectedPosition ?? this.selectedPosition,
-    highlightedMutations: highlightedMutations ?? this.highlightedMutations
+    highlightedMutations: highlightedMutations ?? this.highlightedMutations,
+    pdbData: pdbData
   );
 
   @override

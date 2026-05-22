@@ -1,0 +1,343 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/models/protein.dart';
+import '../../blocs/experiment/experiment_bloc.dart';
+import '../../blocs/structure/structure_bloc.dart';
+import '../app_theme.dart';
+
+class SequencePanel extends StatelessWidget {
+  final Protein protein;
+
+  const SequencePanel({super.key, required this.protein});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppTheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SequenceHeader(protein: protein),
+          const Divider(height: 1),
+          _StagedMutationsBar(),
+          const Divider(height: 1),
+          Expanded(child: _SequenceGrid(protein: protein)),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+class _SequenceHeader extends StatelessWidget {
+  final Protein protein;
+
+  const _SequenceHeader({required this.protein});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Text('SEQUENCE',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 2,
+              )),
+          const Spacer(),
+          Text('${protein.wildtypeSequence.length} residues',
+              style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Staged mutations chip bar
+// ---------------------------------------------------------------------------
+
+class _StagedMutationsBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ExperimentBloc, ExperimentState>(
+      builder: (context, state) {
+        if (state is! ExperimentActive) return const SizedBox(height: 40);
+
+        final mutations = state.currentMutations;
+        if (mutations.isEmpty) {
+          return Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            child: Text('No staged mutations',
+                style: Theme.of(context).textTheme.labelSmall),
+          );
+        }
+
+        return SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            itemCount: mutations.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 6),
+            itemBuilder: (context, index) {
+              final (pos, aa) = mutations[index];
+              final wt = state.protein.wildtypeSequence[pos - 1];
+              return _MutationChip(
+                label: '$wt${pos}$aa',
+                onRemove: () => context
+                    .read<ExperimentBloc>()
+                    .add(MutationChange(position: pos, aminoAcid: wt)),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MutationChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+
+  const _MutationChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppTheme.warning.withOpacity(0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                fontSize: 11, color: AppTheme.warning, fontWeight: FontWeight.w600,
+              )),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, size: 12, color: AppTheme.warning),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sequence grid
+// ---------------------------------------------------------------------------
+
+class _SequenceGrid extends StatelessWidget {
+  final Protein protein;
+
+  const _SequenceGrid({required this.protein});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ExperimentBloc, ExperimentState>(
+      builder: (context, experimentState) {
+        return BlocBuilder<StructureBloc, StructureState>(
+          builder: (context, structureState) {
+            final mutations = experimentState is ExperimentActive
+                ? experimentState.currentMutations
+                : <(int, String)>[];
+
+            final selectedPosition = structureState is StructureReady
+                ? structureState.selectedPosition
+                : null;
+
+            return GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 10,
+                mainAxisSpacing: 4,
+                crossAxisSpacing: 4,
+                childAspectRatio: 1,
+              ),
+              itemCount: protein.wildtypeSequence.length,
+              itemBuilder: (context, index) {
+                final position = index + 1; // 1-indexed
+                final wtAa = protein.wildtypeSequence[index];
+
+                // Check if this position has a staged mutation
+                final mutation = mutations
+                    .where((m) => m.$1 == position)
+                    .firstOrNull;
+
+                final displayAa = mutation?.$2 ?? wtAa;
+                final isMutated = mutation != null;
+                final isSelected = selectedPosition == position;
+
+                return _ResidueTile(
+                  position: position,
+                  aminoAcid: displayAa,
+                  wildtypeAa: wtAa,
+                  isMutated: isMutated,
+                  isSelected: isSelected,
+                  isInteractable: experimentState is ExperimentActive &&
+                      !experimentState.isEvaluating,
+                  onTap: () {
+                    // Sync selection with structure viewer
+                    context
+                        .read<StructureBloc>()
+                        .add(ResidueSelected(position: position));
+                  },
+                  onMutationSelected: (aa) {
+                    context.read<ExperimentBloc>().add(
+                      MutationChange(position: position, aminoAcid: aa),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Individual residue tile
+// ---------------------------------------------------------------------------
+
+class _ResidueTile extends StatelessWidget {
+  final int position;
+  final String aminoAcid;
+  final String wildtypeAa;
+  final bool isMutated;
+  final bool isSelected;
+  final bool isInteractable;
+  final VoidCallback onTap;
+  final ValueChanged<String> onMutationSelected;
+
+  const _ResidueTile({
+    required this.position,
+    required this.aminoAcid,
+    required this.wildtypeAa,
+    required this.isMutated,
+    required this.isSelected,
+    required this.isInteractable,
+    required this.onTap,
+    required this.onMutationSelected,
+  });
+
+  void _showAminoAcidPicker(BuildContext context) {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    showMenu<String>(
+      context: context,
+      color: AppTheme.surfaceRaised,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: AppTheme.border),
+      ),
+      position: RelativeRect.fromLTRB(
+        offset.dx, offset.dy + size.height, offset.dx + 200, 0,
+      ),
+      items: [
+        PopupMenuItem(
+          enabled: false,
+          child: Text('Position $position — $wildtypeAa (wildtype)',
+              style: Theme.of(context).textTheme.labelSmall),
+        ),
+        const PopupMenuDivider(),
+        ..._buildAaRows(context),
+      ],
+    ).then((selected) {
+      if (selected != null) onMutationSelected(selected);
+    });
+  }
+
+  List<PopupMenuItem<String>> _buildAaRows(BuildContext context) {
+    const aas = 'ACDEFGHIKLMNPQRSTVWY';
+    return aas.split('').map((aa) {
+      final isCurrentWt = aa == wildtypeAa;
+      final isCurrentMutation = aa == aminoAcid && isMutated;
+      return PopupMenuItem<String>(
+        value: aa,
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppTheme.colorForAminoAcid(aa),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(aa,
+                style: TextStyle(
+                  color: isCurrentWt
+                      ? AppTheme.textMuted
+                      : isCurrentMutation
+                      ? AppTheme.warning
+                      : AppTheme.textPrimary,
+                  fontWeight: isCurrentMutation ? FontWeight.w700 : FontWeight.w400,
+                )),
+            if (isCurrentWt)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text('wt', style: Theme.of(context).textTheme.labelSmall),
+              ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final aaColor = AppTheme.colorForAminoAcid(aminoAcid);
+
+    return GestureDetector(
+      onTap: () {
+        onTap();
+        if (isInteractable) _showAminoAcidPicker(context);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: BoxDecoration(
+          color: isMutated
+              ? AppTheme.warning.withOpacity(0.15)
+              : aaColor.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.accent
+                : isMutated
+                ? AppTheme.warning.withOpacity(0.6)
+                : aaColor.withOpacity(0.3),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            aminoAcid,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: isMutated ? AppTheme.warning : aaColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
