@@ -18,6 +18,10 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     on<MutationChange>(_onMutationChange);
     on<MutationSetLoad>(_onMutationSetLoad);
     on<Evaluate>(_onEvaluate);
+    on<ExperimentClose>((_, emit) {
+      if (state is! ExperimentFinished) return;
+      emit(ExperimentInitial());
+    });
   }
 
   void _onStart(ExperimentStart event, Emitter<ExperimentState> emit) {

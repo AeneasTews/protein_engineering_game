@@ -13,10 +13,7 @@ class SessionManagerBloc extends Bloc<SessionManagerEvent, SessionManagerState> 
       : _sessionRepository = sessionRepository, super(const SessionManagerInitial()) {
     on<SessionManagerCreate>(_onCreate);
     on<SessionManagerFinish>(_onFinish);
-    on<SessionManagerClose>((_, emit) {
-      if (state is! SessionManagerFinished) return;
-      emit(const SessionManagerInitial());
-    });
+    on<SessionManagerClose>((_, emit) => emit(const SessionManagerInitial()));
   }
 
   Future<void> _onCreate(SessionManagerCreate event, Emitter<SessionManagerState> emit) async {

@@ -16,10 +16,13 @@ class GameScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<ExperimentBloc, ExperimentState>(
       listenWhen: (_, nextState) => nextState is ExperimentFinished,
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is! ExperimentFinished) return;
-        // TODO: show finished dialog
-        Navigator.of(context).pop();
+        context.read<SessionManagerBloc>().add(SessionManagerFinish(score: state.bestScore));
+        await _showFinishDialog(context, state);
+
+        if (!context.mounted) return;
+        context.read<ExperimentBloc>().add(ExperimentClose());
         context.read<SessionManagerBloc>().add(SessionManagerClose());
       },
       child: Scaffold(
@@ -41,6 +44,62 @@ class GameScreen extends StatelessWidget {
           ]
         )
       )
+    );
+  }
+
+  Future<void> _showFinishDialog(BuildContext context, ExperimentFinished state) async {
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Experiment Complete"),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ScoreRow(label: "YOUR BEST", value: state.bestScore),
+              const SizedBox(height: 12),
+              _ScoreRow(label: "HIGH SCORE", value: state.highscore.score),
+              const SizedBox(height: 24),
+              if (state.bestScore > state.highscore.score)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: const Text(
+                    "🏆 New High Score!"
+                  )
+                )
+            ]
+          )
+        ),
+        actions: [
+          FilledButton(
+            onPressed:  () => Navigator.of(dialogContext).pop(true),
+            child: const Text("Back to library")
+          )
+        ]
+      )
+    );
+
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+}
+
+class _ScoreRow extends StatelessWidget {
+  final String label;
+  final double value;
+
+  const _ScoreRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(value.toStringAsFixed(2))
+      ]
     );
   }
 }

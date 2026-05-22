@@ -1,5 +1,3 @@
-import "package:app/blocs/session_manager/session_manager_bloc.dart";
-import "package:app/data/models/trajectory_step.dart";
 import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";

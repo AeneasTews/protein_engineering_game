@@ -39,3 +39,7 @@ final class MutationSetLoad extends ExperimentEvent {
 final class Evaluate extends ExperimentEvent {
   const Evaluate();
 }
+
+final class ExperimentClose extends ExperimentEvent {
+  const ExperimentClose();
+}
