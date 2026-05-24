@@ -4,7 +4,11 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../data/models/experiment_entry.dart";
 
+const colorDelta = 0.01;
+
 class HistoryPanel extends StatelessWidget {
+  const HistoryPanel({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -89,9 +93,9 @@ class _StatBlock extends StatelessWidget {
 Color? _scoreColor(double? score, BuildContext context) {
   if (score == null) {
     return null;
-  } else if (score < 0.9) {
+  } else if (score < 0 - colorDelta) {
     return Theme.of(context).colorScheme.error;
-  } else if (score > 1.1) {
+  } else if (score > 0 + colorDelta) {
     return Theme.of(context).colorScheme.primary;
   } else {
     return null;
@@ -236,7 +240,7 @@ class _HistoryGraph extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 20,
+                      reservedSize: 30,
                       interval: 1.0,
                     ),
                   ),

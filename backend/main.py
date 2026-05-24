@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, AsyncIterator
 import sqlite3
 from pathlib import Path
@@ -6,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from models.schemas import *
-from data.loader import load_proteins_from_directory, get_score, Protein
+from data.loader import load_proteins_from_directory, get_score, Protein, NORMALIZED_TARGET
 from db.db import (
     Highscore,
     init_db,
@@ -37,7 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         exit(1)
     print("Complete!")
     print("Loading Database...")
-    DB_CONNECTION = init_db(DB_PATH)
+    DB_CONNECTION = init_db(DB_PATH, NORMALIZED_TARGET)
     if DB_CONNECTION is None:
         logger.error("Failed to initialize the database")
         exit(1)
@@ -48,6 +49,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     print("Complete!")
 
 app = FastAPI(title="Protein Engineering Game API", description="Protein Engineering Game API", version="0.0.1", lifespan=lifespan)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 @app.get("/proteins", response_model=List[ProteinBase], tags=["proteins"])
@@ -67,7 +76,7 @@ async def evaluate_mutant(mutation_request: MutationRequest):
 
     # single step logic
     score = get_score(protein=PROTEINS_DB[mutation_request.pdb_id], mutant=mutation_request.mutant)
-    score = score if score is not None else 1.0 # TODO: data augmentation in case of missing data
+    score = score if score is not None else NORMALIZED_TARGET
 
     add_trajectory(session_id=mutation_request.session_id, mutant=mutation_request.mutant, score=score, connection=DB_CONNECTION)
     trajectories = get_trajectories(session_id=mutation_request.session_id, connection=DB_CONNECTION)

@@ -1,15 +1,17 @@
+import math
 from dataclasses import dataclass, field
 import re
 import pandas as pd
 import logging
 from pathlib import Path
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Callable
 
 
 logger = logging.getLogger(__name__)
 
 
 REQUIRED_COLUMNS = {"mutant", "mutated_sequence", "DMS_score"}
+NORMALIZED_TARGET = 0.0
 
 
 @dataclass
@@ -64,7 +66,7 @@ def _build_wildtype(df: pd.DataFrame) -> Optional[str]:
 
 
 def _parse_mutants(df: pd.DataFrame) -> Optional[Dict[str, Tuple[float, List[Tuple[int, str, str]]]]]:
-    output = {"": (1.0, [(0, "", "")])}
+    output = {"": (NORMALIZED_TARGET, [(0, "", "")])}
     for i, row in df.iterrows():
         mutants = _parse_mutation_entry(str(row["mutant"]))
         if mutants is None:
@@ -79,7 +81,12 @@ def _parse_mutants(df: pd.DataFrame) -> Optional[Dict[str, Tuple[float, List[Tup
     return output
 
 
-def load_protein_from_csv(path: Path) -> Optional[Protein]:
+def _normalize_mutations(df: pd.DataFrame) -> None:
+    min_above = df[df["DMS_score_bin"] == 1]["DMS_score"].min()
+    df["DMS_score"] = df["DMS_score"] + (NORMALIZED_TARGET - min_above)
+
+
+def _load_protein_from_csv(path: Path) -> Optional[Protein]:
     try:
         out = parse_filename(path.name)
         if out is None:
@@ -100,6 +107,8 @@ def load_protein_from_csv(path: Path) -> Optional[Protein]:
     if df.empty:
         logger.error(f"No valid columns after dropping nulls whilst trying to load {path}")
         return None
+
+    _normalize_mutations(df)
 
     wildtype_sequence = _build_wildtype(df)
     if wildtype_sequence is None:
@@ -123,7 +132,7 @@ def load_proteins_from_directory(path: Path) -> Optional[Dict[str, Protein]]:
 
     proteins = {}
     for file in files:
-        protein = load_protein_from_csv(file)
+        protein = _load_protein_from_csv(file)
         if protein is None:
             continue
         proteins[protein.pdb_id] = protein
@@ -131,15 +140,41 @@ def load_proteins_from_directory(path: Path) -> Optional[Dict[str, Protein]]:
     return proteins
 
 
+def _build_average(protein: Protein, mutations: List[Tuple[int, str, str]], divisor: Callable[[List[Tuple[int, str, str]]], float]=lambda l: len(l)) -> Optional[float]:
+    cumulative = 0.0
+    for mutation in mutations:
+        mutant_key = _build_mutation_key([mutation])
+        if mutant_key in protein.mutants:
+            cumulative += protein.mutants[mutant_key][0]
+        else:
+            cumulative += NORMALIZED_TARGET
+
+    average = cumulative / divisor(mutations)
+    return average if average != NORMALIZED_TARGET else None
+
+
+def _build_cumulative(protein: Protein, mutations: List[Tuple[int, str, str]], penalty: Callable[[List[Tuple[int, str, str]]], float]=lambda l: len(l)) -> Optional[float]:
+    cumulative = 0.0
+    for mutation in mutations:
+        mutant_key = _build_mutation_key([mutation])
+        if mutant_key in protein.mutants:
+            cumulative += protein.mutants[mutant_key][0]
+        else:
+            cumulative += NORMALIZED_TARGET
+
+    return cumulative - penalty(mutations) if cumulative != NORMALIZED_TARGET else None
+
+
 def get_score(protein: Protein, mutant: str) -> Optional[float]:
-    mutant = _parse_mutation_entry(mutant)
-    if mutant is None:
+    parsed_mutant = _parse_mutation_entry(mutant)
+    if parsed_mutant is None:
         return None
-    mutant_key = _build_mutation_key(mutant)
+    mutant_key = _build_mutation_key(parsed_mutant)
     if mutant_key in protein.mutants:
         return protein.mutants[mutant_key][0]
 
+    average = _build_cumulative(protein, parsed_mutant, lambda l: math.exp(-len(l)))
+    if average is not None:
+        return average
+
     return None
-
-
-#print(load_proteins_from_directory(Path("/home/aeneastews/work/hiwi_rostlab/learn_flutter/protein_engineering_game/backend/dms_data/thermo_data/")))

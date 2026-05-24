@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mol* Viewer</title>
+    <link rel="stylesheet" href="molstar.css" />
+    <!-- TODO change this color --> <style>
+        * {margin: 0; padding: 0; box-sizing: border-box;}
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0cca5d;
+        }
+
+        #viewport {
+            width: 100%;
+            height: 100%;
+        }
+
+        .msp-logo {display: none !important;}
+    </style>
+</head>
+<body>
+<div id="viewport"></div>
+<script src="molstar.js"></script>
+<script>
+    let viewer = null;
+    let isReady = false;
+
+    async function init() {
+        viewer = await molstar.Viewer.create("viewport", {
+            /*layoutIsExpanded: false,
+            layoutShowControls: false,
+            layoutShowRemoteState: false,
+            layoutShowSequence: false,
+            layoutShowLog: false,
+            layoutShowLeftPanel: false,
+            viewportShowExpand: false,
+            viewportShowControls: false,
+            viewportShowSettings: false,
+            viewportShowSelectionMode: false,
+            viewportShowAnimation: false,
+             */
+        });
+
+        subscribeToClicks();
+        isReady = true;
+    }
+
+    function subscribeToClicks() {
+        viewer.plugin.behaviors.interaction.click.subscribe((event) => {
+            const loci = event.current.loci;
+
+            if (!loci || loci.kind !== "element-loci" || loci.elements.length === 0) return;
+
+            try {
+                const loc = molstar.MolCore.StructureElement.Location.create(loci.structure);
+                molstar.MolCore.StructureElement.Loci.firstLocation(loci, loc);
+                const seqId = molstar.MolCore.StructureProperties.residue.auth_seq_id(loc);
+                if (window.ResidueSelected) {
+                    window.ResidueSelected.postMessage(String(seqId));
+                }
+            } catch (e) {
+                console.warn("Could not extract residue from click:", e);
+            }
+        });
+    }
+
+    async function loadStructure(base64Data) {
+        if (!isReady) return;
+
+        try {
+            const pdbString = atob(base64Data);
+            await viewer.plugin.clear();
+            const data = await viewer.plugin.builders.data.rawData(
+                {data: pdbString, label: "structure"},
+                {state: {isGhost: false}}
+            );
+
+            const trajectory = await viewer.plugin.builders.structure.parseTrajectory(data, "pdb");
+
+            await viewer.plugin.builders.structure.hierarchy.applyPreset(
+                trajectory,
+                "default",
+                {structure: {representationParams: {theme: {globalName: "element-symbol"}}}}
+            );
+        } catch (e) {
+            console.error("loadStructure failed:", e);
+        }
+    }
+
+    async function highlightResidues(positionsJson) {
+        if (!isReady) return;
+
+        const plugin = viewer.plugin;
+        const structure = plugin.managers.structure.hierarchy.current.structures[0];
+        if (!structure) return;
+
+        const data = structure.cell.obj?.data;
+        if (!data) return;
+
+        plugin.managers.structure.focus.clear();
+
+        const positions = JSON.parse(positionsJson);
+        if (positions.length === 0) return;
+
+        try {
+            const MS = molstar.MolCore.MolScriptBuilder;
+
+            const expression = MS.struct.generator.atomGroups({
+                'residue-test': MS.core.set.has([
+                    MS.set(...positions),
+                    MS.struct.atomProperty.macromolecular.auth_seq_id()
+                ])
+            });
+
+            const sel = molstar.MolCore.Script.getStructureSelection(expression, data);
+            const loci = molstar.MolCore.StructureSelection.toLociWithSourceUnits(sel);
+
+            plugin.managers.structure.focus.setFromLoci(loci);
+        } catch (e) {
+            console.warn('highlightResidues failed:', e);
+        }
+    }
+
+    async function focusResidue(position) {
+        if (!isReady) return;
+
+        const plugin = viewer.plugin;
+        const structure = plugin.managers.structure.hierarchy.current.structures[0];
+        if (!structure) return;
+
+        const data = structure.cell.obj?.data;
+        if (!data) return;
+
+        try {
+            const MS = molstar.MolCore.MolScriptBuilder;
+
+            const expression = MS.struct.generator.atomGroups({
+                'residue-test': MS.core.rel.eq([
+                    MS.struct.atomProperty.macromolecular.auth_seq_id(),
+                    position
+                ])
+            });
+
+            const sel = molstar.MolCore.Script.getStructureSelection(expression, data);
+            const loci = molstar.MolCore.StructureSelection.toLociWithSourceUnits(sel);
+
+            plugin.managers.camera.focusLoci(loci);
+        } catch (e) {
+            console.warn('focusResidue failed:', e);
+        }
+    }
+
+    function clearHighlights() {
+        if (!isReady) return;
+        try {
+            viewer.plugin.managers.structure.focus.clear();
+            viewer.plugin.managers.interactivity.lociHighlights.clearHighlights();
+            viewer.plugin.managers.camera.reset();
+        } catch (e) {
+            console.warn('clearHighlights failed:', e);
+        }
+    }
+
+    init().catch(console.error);
+</script>
+</body>
+</html>

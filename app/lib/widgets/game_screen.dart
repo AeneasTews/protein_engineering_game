@@ -1,4 +1,5 @@
 import "package:app/blocs/experiment/experiment_bloc.dart";
+import "package:app/data/repositories/protein_repository.dart";
 import "package:app/widgets/history_panel.dart";
 import "package:app/widgets/sequence_panel.dart";
 import "package:app/widgets/structure_panel.dart";
@@ -7,10 +8,32 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../data/models/protein.dart";
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
   final Protein protein;
 
   const GameScreen({super.key, required this.protein});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  String? _pdbData;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPdb();
+  }
+
+  Future<void> _fetchPdb() async {
+    try {
+      final pdb = await context.read<ProteinRepository>().getPdb(widget.protein.pdbId);
+      if (mounted) setState(() => _pdbData = pdb);
+    } catch (e) {
+      debugPrint("PDB fetch failed: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +51,14 @@ class GameScreen extends StatelessWidget {
       child: Scaffold(
         body: Column(
           children: [
-            _GameBar(protein: protein),
+            _GameBar(protein: widget.protein),
             Divider(),
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: SequencePanel(protein: protein)),
+                  Expanded(child: SequencePanel(protein: widget.protein)),
                   const VerticalDivider(),
-                  Expanded(child: StructurePanel()),
+                  Expanded(child: StructurePanel(pdbData: _pdbData)),
                   const VerticalDivider(),
                   Expanded(child: HistoryPanel())
                 ]
@@ -93,7 +116,7 @@ class _ScoreRow extends StatelessWidget {
   const _ScoreRow({required this.label, required this.value});
 
   @override
-  Widget build(BuildContext) {
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

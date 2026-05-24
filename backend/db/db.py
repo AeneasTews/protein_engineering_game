@@ -28,7 +28,7 @@ class Highscore:
     score: float
 
 
-def init_db(path: Path) -> Optional[sqlite3.Connection]:
+def init_db(path: Path, initial_highscore: float) -> Optional[sqlite3.Connection]:
     try:
         connection = sqlite3.connect(str(path))
         cur = connection.cursor()
@@ -58,8 +58,8 @@ def init_db(path: Path) -> Optional[sqlite3.Connection]:
         """)
         cur.execute("""
         INSERT INTO highscore (username, score)
-        VALUES ('nobody', 0); --default value to prevent empty score table
-        """)
+        VALUES ('nobody', ?);
+        """, [initial_highscore])
         connection.commit()
         cur.close()
         return connection
