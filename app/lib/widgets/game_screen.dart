@@ -130,7 +130,7 @@ class _ScoreRow extends StatelessWidget {
 class _GameBar extends StatelessWidget {
   final Protein protein;
 
-  const _GameBar({super.key, required this.protein});
+  const _GameBar({required this.protein});
 
   @override
   Widget build(BuildContext context) {

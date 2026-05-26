@@ -27,8 +27,6 @@ class SequencePanel extends StatelessWidget {
 }
 
 class _MutationBar extends StatelessWidget {
-  const _MutationBar({super.key});
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ExperimentBloc, ExperimentState>(
@@ -74,7 +72,7 @@ class _MutationTile extends StatelessWidget {
   final String label;
   final VoidCallback onRemove;
 
-  const _MutationTile({super.key, required this.label, required this.onRemove});
+  const _MutationTile({required this.label, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +99,7 @@ class _MutationTile extends StatelessWidget {
 class _SequenceEditor extends StatelessWidget {
   final Protein protein;
 
-  const _SequenceEditor({super.key, required this.protein});
+  const _SequenceEditor({required this.protein});
 
   @override
   Widget build(BuildContext context) {

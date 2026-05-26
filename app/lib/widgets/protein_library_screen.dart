@@ -1,4 +1,3 @@
-import "package:app/data/repositories/protein_repository.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
@@ -74,8 +73,6 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
 }
 
 class _ProteinGrid extends StatelessWidget {
-  const _ProteinGrid({super.key});
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProteinLibraryBloc, ProteinLibraryState>(
@@ -127,7 +124,7 @@ class _ProteinCard extends StatelessWidget {
   final Protein protein;
   final bool isSelected;
 
-  const _ProteinCard({super.key, required this.protein, required this.isSelected});
+  const _ProteinCard({required this.protein, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +168,7 @@ class _ProteinCard extends StatelessWidget {
 class _SessionPanel extends StatelessWidget {
   final TextEditingController usernameController;
 
-  const _SessionPanel({super.key, required this.usernameController});
+  const _SessionPanel({required this.usernameController});
 
   @override
   Widget build(BuildContext context) {
