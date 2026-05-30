@@ -1,5 +1,4 @@
 import "package:app/blocs/experiment/experiment_bloc.dart";
-import "package:app/data/repositories/protein_repository.dart";
 import "package:app/widgets/history_panel.dart";
 import "package:app/widgets/sequence_panel.dart";
 import "package:app/widgets/structure_panel.dart";
@@ -8,32 +7,10 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../data/models/protein.dart";
 
-class GameScreen extends StatefulWidget {
+class GameScreen extends StatelessWidget {
   final Protein protein;
 
   const GameScreen({super.key, required this.protein});
-
-  @override
-  State<GameScreen> createState() => _GameScreenState();
-}
-
-class _GameScreenState extends State<GameScreen> {
-  String? _pdbData;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchPdb();
-  }
-
-  Future<void> _fetchPdb() async {
-    try {
-      final pdb = await context.read<ProteinRepository>().getPdb(widget.protein.pdbId);
-      if (mounted) setState(() => _pdbData = pdb);
-    } catch (e) {
-      debugPrint("PDB fetch failed: $e");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,22 +28,24 @@ class _GameScreenState extends State<GameScreen> {
       child: Scaffold(
         body: Column(
           children: [
-            _GameBar(protein: widget.protein),
-            Divider(),
+            _GameBar(protein: protein),
+            const Divider(),
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: SequencePanel(protein: widget.protein)),
+                  Expanded(child: SequencePanel(protein: protein)),
                   const VerticalDivider(),
-                  Expanded(child: StructurePanel(pdbData: _pdbData)),
+                  Expanded(
+                    child: StructurePanel(pdbId: protein.pdbId),
+                  ),
                   const VerticalDivider(),
-                  Expanded(child: HistoryPanel())
-                ]
-              )
-            )
-          ]
-        )
-      )
+                  const Expanded(child: HistoryPanel()),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -87,20 +66,18 @@ class _GameScreenState extends State<GameScreen> {
               if (state.bestScore > state.highscore.score)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: const Text(
-                    "🏆 New High Score!"
-                  )
-                )
-            ]
-          )
+                  child: const Text("🏆 New High Score!"),
+                ),
+            ],
+          ),
         ),
         actions: [
           FilledButton(
-            onPressed:  () => Navigator.of(dialogContext).pop(true),
-            child: const Text("Back to library")
-          )
-        ]
-      )
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text("Back to library"),
+          ),
+        ],
+      ),
     );
 
     if (context.mounted) {
@@ -121,8 +98,8 @@ class _ScoreRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label),
-        Text(value.toStringAsFixed(2))
-      ]
+        Text(value.toStringAsFixed(2)),
+      ],
     );
   }
 }
@@ -136,41 +113,43 @@ class _GameBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 50,
-      padding: EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           Text(
             protein.name,
-            style: Theme.of(context).textTheme.titleLarge
+            style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(width: 10),
           Text(
             protein.pdbId,
-            style: Theme.of(context).textTheme.titleLarge
+            style: Theme.of(context).textTheme.titleLarge,
           ),
           const Spacer(),
           BlocBuilder<ExperimentBloc, ExperimentState>(
             builder: (context, state) {
-              if (state is! ExperimentActive) return SizedBox.shrink();
+              if (state is! ExperimentActive) return const SizedBox.shrink();
               return Row(
                 children: [
                   Text(
                     "ROUND",
-                    style: Theme.of(context).textTheme.titleLarge
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     "${state.turnCount} / 20",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: state.turnCount >= 18 ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary
-                    )
-                  )
-                ]
+                      color: state.turnCount >= 18
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
               );
-            }
-          )
-        ]
-      )
+            },
+          ),
+        ],
+      ),
     );
   }
 }
