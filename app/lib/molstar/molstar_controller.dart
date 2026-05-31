@@ -1,36 +1,55 @@
+import "dart:convert";
 import "dart:js_interop";
 import "dart:js_interop_unsafe";
 import "package:web/web.dart";
 
 class MolstarController {
   bool isLoaded = true;
+  String? gymSequence;
 
-  void Function(String chain, int residue, String eventType)? onResidueEvent;
+  void Function(int seqPosition, String eventType, double x, double y)? onResidueEvent;
 
   void registerJsCallbacks() {
     window.setProperty(
       "onMolstarEvent".toJS,
-      ((JSString chain, JSNumber residueId, JSString eventType) {
+      ((JSNumber seqPosition, JSString eventType, JSNumber x, JSNumber y) {
         onResidueEvent?.call(
-          chain.toDart,
-          residueId.toDartInt,
-          eventType.toDart
+          seqPosition.toDartInt,
+          eventType.toDart,
+          x.toDartDouble,
+          y.toDartDouble,
         );
-      }).toJS
+      }).toJS,
     );
   }
 
   void loadPdb(String pdbId) {
-    window.callMethod("loadPdb".toJS, pdbId.toJS);
+    if (gymSequence != null) {
+      window.callMethod("loadPdb".toJS, pdbId.toJS, gymSequence!.toJS);
+    } else {
+      window.callMethod("loadPdb".toJS, pdbId.toJS);
+    }
     isLoaded = true;
   }
 
-  void highlightResidue(String chain, int res) {
+  void selectResidue(int seqPosition) {
     if (!isLoaded) return;
-    window.callMethod("highlightResidue".toJS, chain.toJS, res.toJS);
+    window.callMethod("selectResidue".toJS, seqPosition.toJS);
+  }
+
+  void highlightResidue(int seqPosition) {
+    if (!isLoaded) return;
+    window.callMethod("highlightResidue".toJS, seqPosition.toJS);
+  }
+
+  void updateMutationColors(List<int> seqPositions) {
+    if (!isLoaded) return;
+    final json = jsonEncode(seqPositions);
+    window.callMethod("updateMutationColors".toJS, json.toJS);
   }
 
   void clearHighlight() {
+    if (!isLoaded) return;
     window.callMethod("clearHighlight".toJS);
   }
 }

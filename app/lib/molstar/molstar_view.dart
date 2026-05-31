@@ -1,6 +1,6 @@
 import "dart:js_interop";
 import "dart:js_interop_unsafe";
-import "package:flutter/cupertino.dart";
+import "package:flutter/material.dart";
 import "dart:ui_web" as ui;
 import "package:web/web.dart";
 import "molstar_controller.dart";
@@ -8,8 +8,14 @@ import "molstar_controller.dart";
 class MolstarView extends StatefulWidget {
   final MolstarController controller;
   final String pdbId;
+  final String wildtypeSequence;
 
-  const MolstarView({super.key, required this.controller, required this.pdbId});
+  const MolstarView({
+    super.key,
+    required this.controller,
+    required this.pdbId,
+    required this.wildtypeSequence,
+  });
 
   @override
   State<MolstarView> createState() => _MolstarViewState();
@@ -33,10 +39,19 @@ class _MolstarViewState extends State<MolstarView> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final bgColor = Theme.of(context).scaffoldBackgroundColor.toARGB32() & 0xFFFFFF;
+
       await Future.delayed(const Duration(milliseconds: 100));
 
       widget.controller.registerJsCallbacks();
-      window.callMethod("initializeMolstar".toJS, widget.pdbId.toJS);
+      widget.controller.gymSequence = widget.wildtypeSequence;
+
+      window.callMethod(
+        "initializeMolstar".toJS,
+        widget.pdbId.toJS,
+        widget.wildtypeSequence.toJS,
+        bgColor.toJS,
+      );
     });
   }
 
