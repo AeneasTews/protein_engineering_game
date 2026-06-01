@@ -20,8 +20,12 @@ class SessionRepository {
     return (jsonDecode(response.body) as Map<String, dynamic>)["session_id"] as int;
   }
 
-  Future<Highscore> getHighscore() async {
-    final response = await _client.get(Uri.parse("$baseUrl/highscore"));
+  Future<Highscore> getHighscore({required String pdbId}) async {
+    final response = await _client.post(
+      Uri.parse("$baseUrl/highscore"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"pdb_id": pdbId})
+    );
     _assertOk(response);
     return Highscore.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }

@@ -88,7 +88,7 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
       final updatedHistory = [...current.history, newEntry];
 
       if (evaluationResult.turnCount >= _maxTurns) {
-        await _finishExperiment(updatedHistory, emit);
+        await _finishExperiment(current.protein.pdbId, updatedHistory, emit);
       } else {
         emit(current.copyWith(
           history: updatedHistory,
@@ -102,11 +102,11 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     }
   }
 
-  Future<void> _finishExperiment(List<ExperimentEntry> history, Emitter<ExperimentState> emit) async {
+  Future<void> _finishExperiment(String pdbId, List<ExperimentEntry> history, Emitter<ExperimentState> emit) async {
     final bestScore = history.map((e) => e.score).reduce((a, b) => a > b ? a : b);
     Highscore highscore;
     try {
-      highscore = await _sessionRepository.getHighscore();
+      highscore = await _sessionRepository.getHighscore(pdbId: pdbId);
     } on ApiException {
       highscore = Highscore(username: "", score: 0);
     }

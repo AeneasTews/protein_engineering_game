@@ -33,7 +33,7 @@ class SessionManagerBloc extends Bloc<SessionManagerEvent, SessionManagerState> 
     final current = state;
     if (current is! SessionManagerActive) return;
     try {
-      final highscore = await _sessionRepository.getHighscore();
+      final highscore = await _sessionRepository.getHighscore(pdbId: current.pdbId);
       emit(SessionManagerFinished(
           sessionId: current.sessionId,
           pdbId: current.pdbId,

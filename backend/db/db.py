@@ -28,7 +28,7 @@ class Highscore:
     score: float
 
 
-def init_db(path: Path, initial_highscore: float) -> Optional[sqlite3.Connection]:
+def init_db(path: Path) -> Optional[sqlite3.Connection]:
     try:
         connection = sqlite3.connect(str(path))
         cur = connection.cursor()
@@ -52,14 +52,11 @@ def init_db(path: Path, initial_highscore: float) -> Optional[sqlite3.Connection
         """)
         cur.execute("""
         CREATE TABLE IF NOT EXISTS highscore (
+            pdb_id VARCHAR(4) PRIMARY KEY,
             username TEXT NOT NULL,
             score FLOAT NOT NULL
         );
         """)
-        cur.execute("""
-        INSERT INTO highscore (username, score)
-        VALUES ('nobody', ?);
-        """, [initial_highscore])
         connection.commit()
         cur.close()
         return connection
@@ -78,6 +75,10 @@ def get_new_session(username: str, pdb_id: str, connection: sqlite3.Connection) 
     session_id = cur.lastrowid
     connection.commit()
     cur.close()
+
+    if session_id is None:
+        raise Exception("An error occured whilst trying to create a new session...")
+    
     return session_id
 
 
@@ -136,25 +137,38 @@ def get_trajectories(session_id: int, connection: sqlite3.Connection) -> List[Tr
     return [TrajectoryStep(mutant=entry[0], score=entry[1], turn_count=entry[2]) for entry in res]
 
 
-def get_highscore_db(connection: sqlite3.Connection) -> Optional[Highscore]:
+def get_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
     cur = connection.cursor()
     res = cur.execute("""
-    SELECT username, score
+    SELECT pdb_id, username, score
     FROM highscore
+    WHERE pdb_id = ?
     LIMIT 1;
-    """).fetchone()
+    """, [pdb_id]).fetchone()
     cur.close()
     if res is None:
-        return None
-    return Highscore(username=res[0], score=res[1])
+        return init_highscore_db(pdb_id=pdb_id, connection=connection)
+        
+    return Highscore(username=res[1], score=res[2])
 
 
-def set_highscore_db(session_id: int, score: float, connection: sqlite3.Connection) -> None:
+def set_highscore_db(connection: sqlite3.Connection, session_id: int, score: float, pdb_id: str) -> None:
     cur = connection.cursor()
     cur.execute("""
     UPDATE highscore
     SET username = (SELECT username FROM sessions WHERE session_id = ? LIMIT 1), score = ?
-    WHERE TRUE;
-    """, (session_id, score))
+    WHERE pdb_id = ?;
+    """, (session_id, score, pdb_id))
     connection.commit()
     cur.close()
+
+
+def init_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
+    DEFAULT_NAME = "franz"
+    DEFAULT_SCORE = 0
+    cur = connection.cursor()
+    cur.execute("""
+    INSERT INTO highscore (pdb_id, username, score)
+    VALUES (?, ?, ?);
+    """, [pdb_id, DEFAULT_NAME, DEFAULT_SCORE])
+    return Highscore(username=DEFAULT_NAME, score=DEFAULT_SCORE)

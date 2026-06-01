@@ -106,6 +106,8 @@ class _GameScreenState extends State<GameScreen> {
     final wildtypeAa = widget.protein.wildtypeSequence[seqPosition - 1];
     final experimentBloc = context.read<ExperimentBloc>();
 
+    if (experimentBloc.state is! ExperimentActive) return;
+
     showMenu<void>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -179,25 +181,33 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Future<void> _showFinishDialog(
-      BuildContext context, ExperimentFinished state) async {
+  Future<void> _showFinishDialog(BuildContext context, ExperimentFinished state) async {
+    final Widget content;
+    if (state.bestScore < state.highscore.score) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ScoreRow(label: "HIGHSCORE by ${state.highscore.username}", value: state.highscore.score),
+          const SizedBox(height: 12),
+          _ScoreRow(label: "YOUR BEST", value: state.bestScore)
+        ]
+      );
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ScoreRow(label: "NEW HIGHSCORE", value: state.bestScore)
+        ]
+      );
+    }
+
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Experiment Complete"),
         content: SizedBox(
           width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ScoreRow(label: "YOUR BEST", value: state.bestScore),
-              const SizedBox(height: 12),
-              _ScoreRow(label: "HIGH SCORE", value: state.highscore.score),
-              const SizedBox(height: 24),
-              if (state.bestScore > state.highscore.score)
-                const Text("🏆  New High Score!"),
-            ],
-          ),
+          child: content
         ),
         actions: [
           FilledButton(

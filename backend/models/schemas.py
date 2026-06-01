@@ -38,6 +38,10 @@ class SessionResponse(BaseModel):
     session_id: int = Field(..., description="Session id")
 
 
+class HighScoreRequest(BaseModel):
+    pdb_id: str = Field(..., description="pdb id of structure for which the highscore should be returned")
+
+
 class HighScoreResponse(BaseModel):
     username: str = Field(..., description="Username")
     score: float = Field(..., description="Score of the high score")

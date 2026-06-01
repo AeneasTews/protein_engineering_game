@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 from models.schemas import *
 from data.loader import load_proteins_from_directory, get_score, Protein, NORMALIZED_TARGET
 from db.db import (
-    Highscore,
     init_db,
     get_new_session,
     get_highscore_db,
@@ -17,7 +16,7 @@ from db.db import (
     get_best_session_score,
     set_highscore_db,
     add_trajectory,
-    get_trajectories
+    get_trajectories,
 )
 
 DATA_PATH = Path(__file__).parent / "dms_data" / "thermo_data"
@@ -38,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         exit(1)
     print("Complete!")
     print("Loading Database...")
-    DB_CONNECTION = init_db(DB_PATH, NORMALIZED_TARGET)
+    DB_CONNECTION = init_db(DB_PATH)
     if DB_CONNECTION is None:
         logger.error("Failed to initialize the database")
         exit(1)
@@ -84,14 +83,12 @@ async def evaluate_mutant(mutation_request: MutationRequest):
 
     # final round logic
     if current_turn_count == MAX_TURN_COUNT:
-        highscore = get_highscore_db(connection=DB_CONNECTION)
-        if highscore is None:
-            highscore = 0
+        highscore = get_highscore_db(connection=DB_CONNECTION, pdb_id=mutation_request.pdb_id)
         best_session_score = get_best_session_score(session_id=mutation_request.session_id, connection=DB_CONNECTION)
         if best_session_score is None:
             best_session_score = 0
         if highscore.score < best_session_score:
-            set_highscore_db(session_id=mutation_request.session_id, score=best_session_score, connection=DB_CONNECTION)
+            set_highscore_db(session_id=mutation_request.session_id, score=best_session_score, pdb_id=mutation_request.pdb_id, connection=DB_CONNECTION)
 
     return EvaluationResponse(
         session_id=mutation_request.session_id,
@@ -113,11 +110,10 @@ async def create_session(session_create: SessionCreate):
     session_id = get_new_session(username=session_create.username, pdb_id=session_create.pdb_id, connection=DB_CONNECTION)
     return SessionResponse(session_id=session_id)
 
-@app.get("/highscore", response_model=HighScoreResponse, tags=["sessions"])
-async def get_highscore():
-    logger.log(level=logging.DEBUG, msg=f"Getting Highscore")
-    highscore = get_highscore_db(DB_CONNECTION)
-    if highscore is None:
-        raise HTTPException(status_code=404, detail="Highscore not found")
-
+@app.post("/highscore", response_model=HighScoreResponse, tags=["sessions"])
+async def get_highscore(highscore_request: HighScoreRequest):
+    logger.log(level=logging.DEBUG, msg=f"Getting Highscore for {highscore_request.pdb_id}")
+    if highscore_request.pdb_id not in PROTEINS_DB:
+        raise HTTPException(status_code=400, detail="Invalid protein id")
+    highscore = get_highscore_db(DB_CONNECTION, highscore_request.pdb_id)
     return HighScoreResponse(username=highscore.username, score=highscore.score)
