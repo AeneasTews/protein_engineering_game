@@ -94,30 +94,29 @@ def _load_protein_from_csv(path: Path) -> Optional[Protein]:
         name, pdb_id = out
         df = pd.read_csv(path)
     except Exception as e:
-        print(e)
-        logger.error(f"An error occurred whilst trying to parse: {path}")
+        logger.error("Failed to parse %s: %s", path, e)
         return None
 
     missing_columns = REQUIRED_COLUMNS - set(df.columns)
     if missing_columns:
-        logger.error(f"Columns: {missing_columns} are missing from {path}; Unable to load")
+        logger.error("Missing columns %s in %s — skipping", missing_columns, path)
         return None
 
     df = df.dropna(subset=list(REQUIRED_COLUMNS))
     if df.empty:
-        logger.error(f"No valid columns after dropping nulls whilst trying to load {path}")
+        logger.error("No valid rows after dropping nulls in %s — skipping", path)
         return None
 
     _normalize_mutations(df)
 
     wildtype_sequence = _build_wildtype(df)
     if wildtype_sequence is None:
-        logger.error(f"Failed to build wildtype sequence for {path}")
+        logger.error("Failed to build wildtype sequence for %s — skipping", path)
         return None
 
     mutants = _parse_mutants(df)
     if mutants is None:
-        logger.error(f"An error occurred whilst trying to parse mutants of {path}")
+        logger.error("Failed to parse mutants in %s — skipping", path)
         return None
 
     return Protein(pdb_id, name, wildtype_sequence, mutants)
@@ -127,7 +126,7 @@ def load_proteins_from_directory(path: Path) -> Optional[Dict[str, Protein]]:
     try:
         files = [f for f in path.glob("**/*.csv") if f.is_file()]
     except Exception as e:
-        logger.error("Error ocurred whilst trying to find files")
+        logger.error("Failed to list files in %s: %s", path, e)
         return None
 
     proteins = {}
@@ -137,6 +136,7 @@ def load_proteins_from_directory(path: Path) -> Optional[Dict[str, Protein]]:
             continue
         proteins[protein.pdb_id] = protein
 
+    logger.info("Loaded %d/%d proteins from %s", len(proteins), len(files), path)
     return proteins
 
 

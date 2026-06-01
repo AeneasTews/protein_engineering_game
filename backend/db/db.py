@@ -1,9 +1,8 @@
 import sqlite3
-from typing import List, Optional
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
 import logging
-import os
 
 
 logger = logging.getLogger(__name__)
@@ -61,8 +60,7 @@ def init_db(path: Path) -> Optional[sqlite3.Connection]:
         cur.close()
         return connection
     except Exception as e:
-        logger.error(f"Failed to initialize the database: {e}")
-        os.remove(str(path))
+        logger.error("Failed to initialize the database: %s", e)
         return None
 
 
@@ -77,8 +75,10 @@ def get_new_session(username: str, pdb_id: str, connection: sqlite3.Connection) 
     cur.close()
 
     if session_id is None:
-        raise Exception("An error occured whilst trying to create a new session...")
-    
+        logger.error("INSERT into sessions returned no lastrowid (username=%r, pdb_id=%s)", username, pdb_id)
+        raise RuntimeError("Failed to create a new session")
+
+    logger.info("Created session_id=%d for username=%r pdb_id=%s", session_id, username, pdb_id)
     return session_id
 
 
