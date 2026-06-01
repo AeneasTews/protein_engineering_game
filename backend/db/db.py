@@ -164,7 +164,7 @@ def set_highscore_db(connection: sqlite3.Connection, session_id: int, score: flo
 
 
 def init_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
-    DEFAULT_NAME = "franz"
+    DEFAULT_NAME = "evolution"
     DEFAULT_SCORE = 0
     cur = connection.cursor()
     cur.execute("""
