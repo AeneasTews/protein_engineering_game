@@ -165,36 +165,41 @@ class _HistoryEntry extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: IntrinsicHeight(
-                child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                IntrinsicHeight(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                          "Round ${experimentEntry.turnCount}",
-                          style: Theme.of(context).textTheme.bodyLarge
+                        "Round ${experimentEntry.turnCount}",
+                        style: Theme.of(context).textTheme.bodyLarge
                       ),
                       VerticalDivider(),
-                      Text(
-                          experimentEntry.mutant,
-                          style: Theme.of(context).textTheme.bodyLarge
-                      ),
-                      VerticalDivider(),
+                      Text("Score:", style: Theme.of(context).textTheme.bodyLarge),
                       Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2),
-                          child: Text("Score:", style: Theme.of(context).textTheme.bodyLarge)
-                      ),
-                      Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2),
-                          child: Text(
-                              experimentEntry.score.toStringAsFixed(2),
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: _scoreColor(experimentEntry.score, context)
-                              )
+                        padding: EdgeInsets.only(left: 4),
+                        child: Text(
+                          experimentEntry.score.toStringAsFixed(2),
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: _scoreColor(experimentEntry.score, context)
                           )
+                        )
                       )
                     ]
-                )
-            ),
+                  )
+                ),
+                Divider(),
+                Text(
+                  experimentEntry.mutant,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    overflow: TextOverflow.ellipsis
+                  )
+                ),
+              ]
+            )
           ),
           TextButton(
             onPressed: () {
