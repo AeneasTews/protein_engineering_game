@@ -1,4 +1,3 @@
-pyproject.toml
 __pycache__
 backend/dms_data/
 backend/logs
