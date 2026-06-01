@@ -172,4 +172,5 @@ def init_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
     VALUES (?, ?, ?);
     """, [pdb_id, DEFAULT_NAME, DEFAULT_SCORE])
     connection.commit()
+    cur.close()
     return Highscore(username=DEFAULT_NAME, score=DEFAULT_SCORE)
