@@ -20,7 +20,7 @@ from db.db import (
 from models.schemas import *
 
 DATA_PATH = Path(__file__).parent / "dms_data" / "thermo_data"
-DB_PATH = Path(__file__).parent / "db" / "database.sqlite3"
+DB_PATH = Path(os.environ.get("DB_PATH", Path(__file__).parent / "db" / "database.sqlite3"))
 LOG_PATH = Path(__file__).parent / "logs"
 PROTEINS_DB: Dict[str, Protein] = {}
 DB_CONNECTION: sqlite3.Connection

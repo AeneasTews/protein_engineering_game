@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.idea/
+dms_data/
+db/database.sqlite3
+logs/
+design/
+run.sh
