@@ -4,8 +4,6 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../data/models/experiment_entry.dart";
 
-const colorDelta = 0.01;
-
 class HistoryPanel extends StatelessWidget {
   const HistoryPanel({super.key});
 
@@ -91,6 +89,8 @@ class _StatBlock extends StatelessWidget {
 }
 
 Color? _scoreColor(double? score, BuildContext context) {
+  const colorDelta = 0.1;  // constant which determines outside what range scores should be considered different from wildtype (+- 0.1 is still pretty much wildtype
+
   if (score == null) {
     return null;
   } else if (score < 0 - colorDelta) {

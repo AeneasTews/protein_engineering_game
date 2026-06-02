@@ -5,6 +5,7 @@ import "data/repositories/session_repository.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "data/repositories/protein_repository.dart";
+import "config.dart";
 
 void main() {
   runApp(const App());
@@ -15,7 +16,7 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const baseUrl = "http://localhost:8000";
+    const baseUrl = Config.apiBaseUrl;
 
     return MultiRepositoryProvider(
       providers: [
