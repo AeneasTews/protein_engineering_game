@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 
 RUN flutter pub get
-RUN flutter build web --dart-define=API_BASE_URL=$API_BASE_URL
+RUN flutter build web --wasm --dart-define=API_BASE_URL=$API_BASE_URL
 
 
 FROM nginx:alpine
