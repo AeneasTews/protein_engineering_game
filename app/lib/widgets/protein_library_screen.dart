@@ -3,6 +3,7 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
+import "../data/models/highscore.dart";
 import "../data/models/protein.dart";
 import "../data/repositories/session_repository.dart";
 import "game_screen.dart";
@@ -34,13 +35,10 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
             final protein = libraryState.proteins.firstWhere((p) => p.pdbId == libraryState.selectedPdbId);
 
             Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => MultiBlocProvider(
-                providers: [
-                  BlocProvider(create: (context) => ExperimentBloc(sessionRepository: context.read<SessionRepository>())..add(ExperimentStart(sessionId: state.sessionId, protein: protein))),
-                  // TODO: structure bloc
-                ],
+              builder: (_) => BlocProvider(
+                create: (context) => ExperimentBloc(sessionRepository: context.read<SessionRepository>())..add(ExperimentStart(sessionId: state.sessionId, protein: protein)),
                 child: GameScreen(protein: protein)
-              )
+              ),
             ));
           }
         },
@@ -96,21 +94,23 @@ class _ProteinGrid extends StatelessWidget {
 
         if (state is ProteinLibraryLoaded) {
           return GridView.builder(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisSpacing: 5,
-              crossAxisSpacing: 5,
-              mainAxisExtent: 100
-            ),
-            itemCount: state.proteins.length,
-            itemBuilder: (context, index) {
-              final protein = state.proteins[index];
-              final isSelected = state.selectedPdbId == protein.pdbId;
-              return _ProteinCard(
-                protein: protein,
-                isSelected: isSelected
-              );
-            }
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisSpacing: 5,
+                  crossAxisSpacing: 5,
+                  mainAxisExtent: 130
+              ),
+              itemCount: state.proteins.length,
+              itemBuilder: (context, index) {
+                final protein = state.proteins[index];
+                final isSelected = state.selectedPdbId == protein.pdbId;
+                final highscore = state.highscores[protein.pdbId];
+                return _ProteinCard(
+                  protein: protein,
+                  isSelected: isSelected,
+                  highscore: highscore,
+                );
+              }
           );
         }
 
@@ -123,8 +123,9 @@ class _ProteinGrid extends StatelessWidget {
 class _ProteinCard extends StatelessWidget {
   final Protein protein;
   final bool isSelected;
+  final Highscore? highscore;
 
-  const _ProteinCard({required this.protein, required this.isSelected});
+  const _ProteinCard({required this.protein, required this.isSelected, required this.highscore});
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +157,13 @@ class _ProteinCard extends StatelessWidget {
                   color: Theme.of(context).colorScheme.tertiary
                 ),
                 overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                highscore != null ? "🏆 ${highscore!.username} ${highscore!.score.toStringAsFixed(2)}" : "🏆 —",
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  overflow: TextOverflow.ellipsis
+                )
               )
             ]
           )

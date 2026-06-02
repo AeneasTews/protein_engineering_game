@@ -16,6 +16,7 @@ from db.db import (
     get_trajectories,
     init_db,
     set_highscore_db,
+    get_highscores_db
 )
 from models.schemas import *
 
@@ -194,3 +195,13 @@ async def get_highscore(highscore_request: HighScoreRequest):
         raise HTTPException(status_code=400, detail="Invalid protein id")
     highscore = get_highscore_db(DB_CONNECTION, highscore_request.pdb_id)
     return HighScoreResponse(username=highscore.username, score=highscore.score)
+
+
+@app.post("/highscores", response_model=HighScoresResponse, tags=["sessions"])
+async def get_highscores(highscores_request: HighScoresRequest):
+    logger.debug("Get highscores for a pdb_ids=%s", highscores_request.pdb_ids)
+    if any([pdb_id not in PROTEINS_DB for pdb_id in highscores_request.pdb_ids]):
+        logger.warning("Get highscores rejected: unknown pdb ids in request")
+        raise HTTPException(status_code=400, detail="Invalid protein id")
+    highscores = get_highscores_db(DB_CONNECTION, highscores_request.pdb_ids)
+    return HighScoresResponse(highscores=highscores)

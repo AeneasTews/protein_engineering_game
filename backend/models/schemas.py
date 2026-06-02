@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+from db.db import Highscore
 
 
 class TrajectoryStepBase(BaseModel):
@@ -45,3 +46,11 @@ class HighScoreRequest(BaseModel):
 class HighScoreResponse(BaseModel):
     username: str = Field(..., description="Username")
     score: float = Field(..., description="Score of the high score")
+
+
+class HighScoresRequest(BaseModel):
+    pdb_ids: List[str] = Field(..., description="List of pdb ids to request highscores for")
+
+
+class HighScoresResponse(BaseModel):
+    highscores: Dict[str, Highscore] = Field(..., description="Dictionary of pdb ids: (username, score)")

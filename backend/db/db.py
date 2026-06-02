@@ -1,7 +1,7 @@
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 import logging
 
 
@@ -164,7 +164,7 @@ def set_highscore_db(connection: sqlite3.Connection, session_id: int, score: flo
 
 
 def init_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
-    DEFAULT_NAME = "evolution"
+    DEFAULT_NAME = "Evolution"
     DEFAULT_SCORE = 0
     cur = connection.cursor()
     cur.execute("""
@@ -174,3 +174,20 @@ def init_highscore_db(connection: sqlite3.Connection, pdb_id: str) -> Highscore:
     connection.commit()
     cur.close()
     return Highscore(username=DEFAULT_NAME, score=DEFAULT_SCORE)
+
+
+def get_highscores_db(connection: sqlite3.Connection, pdb_ids: List[str]) -> Dict[str, Highscore]:
+    cur = connection.cursor()
+    placeholders = ','.join('?' for _ in pdb_ids)
+    res = cur.execute(f"""
+    SELECT pdb_id, username, score
+    FROM highscore
+    WHERE pdb_id IN ({placeholders});
+    """, pdb_ids).fetchall()
+    if res is None or len(res) == 0:
+        return {pdb_id: init_highscore_db(connection=connection, pdb_id=pdb_id) for pdb_id in pdb_ids}
+
+    highscores = {entry[0]: Highscore(username=entry[1], score=entry[2]) for entry in res}
+    missing_highscores = set(pdb_ids) - set(highscores.keys())
+    highscores.update({pdb_id: init_highscore_db(connection=connection, pdb_id=pdb_id) for pdb_id in missing_highscores})
+    return highscores
