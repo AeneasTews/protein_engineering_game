@@ -1,6 +1,6 @@
 FROM ghcr.io/cirruslabs/flutter:stable AS builder
 
-ARG API_BASE_URL=http://localhost:8000
+ARG API_BASE_URL=${API_BASE_URL:-http://localhost:8000}
 
 WORKDIR /app
 COPY . .
