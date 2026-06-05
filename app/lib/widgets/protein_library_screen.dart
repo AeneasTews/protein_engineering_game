@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:web/web.dart" as web;
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
@@ -59,7 +60,17 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
                     padding: EdgeInsets.all(8),
                     child: _SessionPanel(usernameController: _usernameController)
                   ),
-                  Spacer()
+                  Spacer(),
+                  Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: TextButton(
+                        onPressed: () => web.window.open("https://biocentral.cloud/", "_blank"),
+                        child: const Text("Impressum", style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                  )
                 ]
               )
             )

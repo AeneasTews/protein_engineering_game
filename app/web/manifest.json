@@ -1,11 +1,11 @@
 {
-    "name": "app",
-    "short_name": "app",
+    "name": "MutateIt — Protein Engineering Game",
+    "short_name": "MutateIt",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#121212",
+    "theme_color": "#121212",
+    "description": "An interactive protein engineering game using real deep mutational scanning data.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
