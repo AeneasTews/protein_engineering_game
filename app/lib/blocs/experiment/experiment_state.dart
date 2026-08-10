@@ -27,7 +27,7 @@ final class ExperimentActive extends ExperimentState {
     required this.history,
     required this.lastScore,
     required this.turnCount,
-    required this.isEvaluating
+    required this.isEvaluating,
   });
 
   ExperimentActive copyWith({
@@ -35,7 +35,7 @@ final class ExperimentActive extends ExperimentState {
     List<ExperimentEntry>? history,
     double? lastScore,
     int? turnCount,
-    bool? isEvaluating
+    bool? isEvaluating,
   }) => ExperimentActive(
     sessionId: sessionId,
     protein: protein,
@@ -43,7 +43,7 @@ final class ExperimentActive extends ExperimentState {
     history: history ?? this.history,
     lastScore: lastScore ?? this.lastScore,
     turnCount: turnCount ?? this.turnCount,
-    isEvaluating: isEvaluating ?? this.isEvaluating
+    isEvaluating: isEvaluating ?? this.isEvaluating,
   );
 
   @override
@@ -54,7 +54,7 @@ final class ExperimentActive extends ExperimentState {
     history,
     lastScore,
     turnCount,
-    isEvaluating
+    isEvaluating,
   ];
 }
 

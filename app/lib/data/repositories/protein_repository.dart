@@ -14,7 +14,9 @@ class ProteinRepository {
     final response = await _client.get(Uri.parse("$baseUrl/proteins"));
     _assertOk(response);
     final List<dynamic> json = jsonDecode(response.body);
-    return json.map((e) => Protein.fromJson(e as Map<String, dynamic>)).toList();
+    return json
+        .map((e) => Protein.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Map<String, Highscore>> getHighscores(List<String> pdbIds) async {
@@ -27,12 +29,15 @@ class ProteinRepository {
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     final highscoresJson = json["highscores"] as Map<String, dynamic>;
     return highscoresJson.map(
-      (key, value) => MapEntry(key, Highscore.fromJson(value as Map<String, dynamic>)),
+      (key, value) =>
+          MapEntry(key, Highscore.fromJson(value as Map<String, dynamic>)),
     );
   }
 
   Future<String> getPdb(String pdbId) async {
-    final response = await _client.get(Uri.parse("https://files.rcsb.org/download/$pdbId.pdb"));
+    final response = await _client.get(
+      Uri.parse("https://files.rcsb.org/download/$pdbId.pdb"),
+    );
     _assertOk(response);
     return response.body;
   }

@@ -3,7 +3,11 @@ class TrajectoryStep {
   final double score;
   final int turnCount;
 
-  const TrajectoryStep({required this.mutant, required this.score, required this.turnCount});
+  const TrajectoryStep({
+    required this.mutant,
+    required this.score,
+    required this.turnCount,
+  });
 
   factory TrajectoryStep.fromJson(Map<String, dynamic> json) => TrajectoryStep(
     mutant: json["mutant"] as String,

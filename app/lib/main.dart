@@ -21,24 +21,28 @@ class App extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider(create: (_) => ProteinRepository(baseUrl: baseUrl)),
-        RepositoryProvider(create: (_) => SessionRepository(baseUrl: baseUrl))
+        RepositoryProvider(create: (_) => SessionRepository(baseUrl: baseUrl)),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (context) => ProteinLibraryBloc(proteinRepository: context.read<ProteinRepository>())..add(ProteinLibraryStarted())
+            create: (context) => ProteinLibraryBloc(
+              proteinRepository: context.read<ProteinRepository>(),
+            )..add(ProteinLibraryStarted()),
           ),
           BlocProvider(
-            create: (context) => SessionManagerBloc(sessionRepository: context.read<SessionRepository>())
-          )
+            create: (context) => SessionManagerBloc(
+              sessionRepository: context.read<SessionRepository>(),
+            ),
+          ),
         ],
         child: MaterialApp(
           title: "Protein Engineering Game",
           debugShowCheckedModeBanner: false,
           theme: ThemeData.dark(),
           home: const ProteinLibraryScreen(),
-        )
-      )
+        ),
+      ),
     );
   }
 }
