@@ -2,3 +2,4 @@ __pycache__
 backend/dms_data/
 backend/logs
 .env
+*.sqlite3

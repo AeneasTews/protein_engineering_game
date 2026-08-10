@@ -61,10 +61,9 @@ final class ExperimentActive extends ExperimentState {
 final class ExperimentFinished extends ExperimentState {
   final List<ExperimentEntry> history;
   final double bestScore;
-  final Highscore highscore;
 
-  const ExperimentFinished({required this.history, required this.bestScore, required this.highscore});
+  const ExperimentFinished({required this.history, required this.bestScore});
 
   @override
-  List<Object?> get props => [history, bestScore, highscore];
+  List<Object?> get props => [history, bestScore];
 }

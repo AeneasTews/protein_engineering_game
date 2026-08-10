@@ -15,6 +15,7 @@ class ProteinLibraryBloc extends Bloc<ProteinLibraryEvent, ProteinLibraryState> 
       : _proteinRepository = proteinRepository, super(const ProteinLibraryInitial()) {
     on<ProteinLibraryStarted>(_onStarted);
     on<ProteinSelected>(_onProteinSelected);
+    on<HighscoreUpdated>(_onHighscoreUpdated);
   }
 
   Future<void> _onStarted(ProteinLibraryStarted event, Emitter<ProteinLibraryState> emit) async {
@@ -34,5 +35,14 @@ class ProteinLibraryBloc extends Bloc<ProteinLibraryEvent, ProteinLibraryState> 
     final current = state;
     if (current is! ProteinLibraryLoaded) return;
     emit(current.copyWith(selectedPdbId: event.pdbId));
+  }
+
+  void _onHighscoreUpdated(HighscoreUpdated event, Emitter<ProteinLibraryState> emit) {
+    final current = state;
+    if (current is! ProteinLibraryLoaded) return;
+    emit(current.copyWith(highscores: {
+      ...current.highscores,
+      event.pdbId: event.highscore,
+    }));
   }
 }
