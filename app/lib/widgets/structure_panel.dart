@@ -24,7 +24,6 @@ class StructurePanel extends StatefulWidget {
 }
 
 class _StructurePanelState extends State<StructurePanel> {
-
   @override
   void initState() {
     super.initState();

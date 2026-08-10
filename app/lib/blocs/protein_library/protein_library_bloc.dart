@@ -8,21 +8,28 @@ import "../../../data/models/highscore.dart";
 part "protein_library_event.dart";
 part "protein_library_state.dart";
 
-class ProteinLibraryBloc extends Bloc<ProteinLibraryEvent, ProteinLibraryState> {
+class ProteinLibraryBloc
+    extends Bloc<ProteinLibraryEvent, ProteinLibraryState> {
   final ProteinRepository _proteinRepository;
 
   ProteinLibraryBloc({required ProteinRepository proteinRepository})
-      : _proteinRepository = proteinRepository, super(const ProteinLibraryInitial()) {
+    : _proteinRepository = proteinRepository,
+      super(const ProteinLibraryInitial()) {
     on<ProteinLibraryStarted>(_onStarted);
     on<ProteinSelected>(_onProteinSelected);
     on<HighscoreUpdated>(_onHighscoreUpdated);
   }
 
-  Future<void> _onStarted(ProteinLibraryStarted event, Emitter<ProteinLibraryState> emit) async {
+  Future<void> _onStarted(
+    ProteinLibraryStarted event,
+    Emitter<ProteinLibraryState> emit,
+  ) async {
     emit(const ProteinLibraryLoading());
     try {
       final proteins = await _proteinRepository.getProteins();
-      final highscores = await _proteinRepository.getHighscores(proteins.map((p) => p.pdbId).toList());
+      final highscores = await _proteinRepository.getHighscores(
+        proteins.map((p) => p.pdbId).toList(),
+      );
       emit(ProteinLibraryLoaded(proteins: proteins, highscores: highscores));
     } on ApiException catch (e) {
       emit(ProteinLibraryError("Failed to load proteins: ${e.statusCode}"));
@@ -31,18 +38,25 @@ class ProteinLibraryBloc extends Bloc<ProteinLibraryEvent, ProteinLibraryState> 
     }
   }
 
-  void _onProteinSelected(ProteinSelected event, Emitter<ProteinLibraryState> emit) {
+  void _onProteinSelected(
+    ProteinSelected event,
+    Emitter<ProteinLibraryState> emit,
+  ) {
     final current = state;
     if (current is! ProteinLibraryLoaded) return;
     emit(current.copyWith(selectedPdbId: event.pdbId));
   }
 
-  void _onHighscoreUpdated(HighscoreUpdated event, Emitter<ProteinLibraryState> emit) {
+  void _onHighscoreUpdated(
+    HighscoreUpdated event,
+    Emitter<ProteinLibraryState> emit,
+  ) {
     final current = state;
     if (current is! ProteinLibraryLoaded) return;
-    emit(current.copyWith(highscores: {
-      ...current.highscores,
-      event.pdbId: event.highscore,
-    }));
+    emit(
+      current.copyWith(
+        highscores: {...current.highscores, event.pdbId: event.highscore},
+      ),
+    );
   }
 }

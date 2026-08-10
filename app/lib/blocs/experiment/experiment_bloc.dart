@@ -12,7 +12,9 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
   final SessionRepository _sessionRepository;
   static const int _maxTurns = 20;
 
-  ExperimentBloc({required SessionRepository sessionRepository}) : _sessionRepository = sessionRepository, super(const ExperimentInitial()) {
+  ExperimentBloc({required SessionRepository sessionRepository})
+    : _sessionRepository = sessionRepository,
+      super(const ExperimentInitial()) {
     on<ExperimentStart>(_onStart);
     on<MutationChange>(_onMutationChange);
     on<MutationSetLoad>(_onMutationSetLoad);
@@ -25,63 +27,85 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
 
   void _onStart(ExperimentStart event, Emitter<ExperimentState> emit) {
     if (state is! ExperimentInitial) return;
-    emit(ExperimentActive(
-      sessionId: event.sessionId,
-      protein: event.protein,
-      currentMutations: const [],
-      history: const [],
-      lastScore: 1.0,
-      turnCount: 0,
-      isEvaluating: false
-    ));
+    emit(
+      ExperimentActive(
+        sessionId: event.sessionId,
+        protein: event.protein,
+        currentMutations: const [],
+        history: const [],
+        lastScore: 1.0,
+        turnCount: 0,
+        isEvaluating: false,
+      ),
+    );
   }
 
   void _onMutationChange(MutationChange event, Emitter<ExperimentState> emit) {
     final current = state;
     if (current is! ExperimentActive || current.isEvaluating) return;
 
-    final updatedMutations = List<(int pos, String aa)>.from(current.currentMutations);
+    final updatedMutations = List<(int pos, String aa)>.from(
+      current.currentMutations,
+    );
     final index = updatedMutations.indexWhere((m) => m.$1 == event.position);
     final wildtypeAa = current.protein.wildtypeSequence[event.position - 1];
 
     if (index != -1) {
-      if (updatedMutations[index].$2 != event.aminoAcid && event.aminoAcid != wildtypeAa) {
+      if (updatedMutations[index].$2 != event.aminoAcid &&
+          event.aminoAcid != wildtypeAa) {
         updatedMutations[index] = (event.position, event.aminoAcid);
       } else {
         updatedMutations.removeAt(index);
       }
     } else {
-      if (event.aminoAcid != wildtypeAa) updatedMutations.add((event.position, event.aminoAcid));
+      if (event.aminoAcid != wildtypeAa)
+        updatedMutations.add((event.position, event.aminoAcid));
     }
 
     emit(current.copyWith(currentMutations: updatedMutations));
   }
 
-  void _onMutationSetLoad(MutationSetLoad event, Emitter<ExperimentState> emit) {
+  void _onMutationSetLoad(
+    MutationSetLoad event,
+    Emitter<ExperimentState> emit,
+  ) {
     final current = state;
     if (current is! ExperimentActive || current.isEvaluating) return;
 
-    emit(current.copyWith(currentMutations: List<(int pos, String aa)>.from(event.mutations)));
+    emit(
+      current.copyWith(
+        currentMutations: List<(int pos, String aa)>.from(event.mutations),
+      ),
+    );
   }
 
-  Future<void> _onEvaluate(Evaluate event, Emitter<ExperimentState> emit) async {
+  Future<void> _onEvaluate(
+    Evaluate event,
+    Emitter<ExperimentState> emit,
+  ) async {
     final current = state;
-    if (current is! ExperimentActive || current.isEvaluating || current.currentMutations.isEmpty) return;
+    if (current is! ExperimentActive ||
+        current.isEvaluating ||
+        current.currentMutations.isEmpty)
+      return;
 
     emit(current.copyWith(isEvaluating: true));
 
-    final mutant = _buildMutant(current.currentMutations, current.protein.wildtypeSequence);
+    final mutant = _buildMutant(
+      current.currentMutations,
+      current.protein.wildtypeSequence,
+    );
     try {
       final evaluationResult = await _sessionRepository.evaluate(
-          sessionId: current.sessionId,
-          pdbId: current.protein.pdbId,
-          mutant: mutant
+        sessionId: current.sessionId,
+        pdbId: current.protein.pdbId,
+        mutant: mutant,
       );
 
       final newEntry = ExperimentEntry(
         mutant: evaluationResult.mutant,
         score: evaluationResult.score,
-        turnCount: evaluationResult.turnCount
+        turnCount: evaluationResult.turnCount,
       );
 
       final updatedHistory = [...current.history, newEntry];
@@ -89,20 +113,27 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
       if (evaluationResult.turnCount >= _maxTurns) {
         _finishExperiment(updatedHistory, emit);
       } else {
-        emit(current.copyWith(
-          history: updatedHistory,
-          lastScore: evaluationResult.score,
-          turnCount: evaluationResult.turnCount,
-          isEvaluating: false
-        ));
+        emit(
+          current.copyWith(
+            history: updatedHistory,
+            lastScore: evaluationResult.score,
+            turnCount: evaluationResult.turnCount,
+            isEvaluating: false,
+          ),
+        );
       }
     } on ApiException {
       emit(current.copyWith(isEvaluating: false));
     }
   }
 
-  void _finishExperiment(List<ExperimentEntry> history, Emitter<ExperimentState> emit) {
-    final bestScore = history.map((e) => e.score).reduce((a, b) => a > b ? a : b);
+  void _finishExperiment(
+    List<ExperimentEntry> history,
+    Emitter<ExperimentState> emit,
+  ) {
+    final bestScore = history
+        .map((e) => e.score)
+        .reduce((a, b) => a > b ? a : b);
     emit(ExperimentFinished(history: history, bestScore: bestScore));
   }
 

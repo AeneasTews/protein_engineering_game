@@ -28,18 +28,16 @@ class _MolstarViewState extends State<MolstarView> {
   void initState() {
     super.initState();
 
-    ui.platformViewRegistry.registerViewFactory(
-      viewType,
-        (int viewId) {
-          return HTMLDivElement()
-              ..id = "molstar-container"
-              ..style.width = "100%"
-              ..style.height = "100%";
-        }
-    );
+    ui.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+      return HTMLDivElement()
+        ..id = "molstar-container"
+        ..style.width = "100%"
+        ..style.height = "100%";
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final bgColor = Theme.of(context).scaffoldBackgroundColor.toARGB32() & 0xFFFFFF;
+      final bgColor =
+          Theme.of(context).scaffoldBackgroundColor.toARGB32() & 0xFFFFFF;
 
       await Future.delayed(const Duration(milliseconds: 100));
 

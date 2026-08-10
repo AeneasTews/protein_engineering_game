@@ -7,7 +7,8 @@ class MolstarController {
   bool isLoaded = true;
   String? gymSequence;
 
-  void Function(int seqPosition, String eventType, double x, double y)? onResidueEvent;
+  void Function(int seqPosition, String eventType, double x, double y)?
+  onResidueEvent;
 
   void registerJsCallbacks() {
     window.setProperty(

@@ -3,18 +3,35 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../data/models/protein.dart";
 
-const aminoAcids = ["A", "R", "N", "D", "C", "E", "Q", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
+const aminoAcids = [
+  "A",
+  "R",
+  "N",
+  "D",
+  "C",
+  "E",
+  "Q",
+  "G",
+  "H",
+  "I",
+  "L",
+  "K",
+  "M",
+  "F",
+  "P",
+  "S",
+  "T",
+  "W",
+  "Y",
+  "V",
+];
 
 class SequencePanel extends StatelessWidget {
   final Protein protein;
 
   final void Function(int position)? onResidueTap;
 
-  const SequencePanel({
-    super.key,
-    required this.protein,
-    this.onResidueTap,
-  });
+  const SequencePanel({super.key, required this.protein, this.onResidueTap});
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +81,7 @@ class _MutationBar extends StatelessWidget {
               return _MutationTile(
                 label: label,
                 onRemove: () => context.read<ExperimentBloc>().add(
-                  MutationChange(
-                    position: mutation.$1,
-                    aminoAcid: mutation.$2,
-                  ),
+                  MutationChange(position: mutation.$1, aminoAcid: mutation.$2),
                 ),
               );
             },
@@ -97,10 +111,7 @@ class _MutationTile extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          const Icon(Icons.close),
-        ],
+        children: [Text(label), const Icon(Icons.close)],
       ),
     );
   }
@@ -132,8 +143,9 @@ class _SequenceEditor extends StatelessWidget {
               itemBuilder: (context, index) {
                 final position = index + 1;
                 final wildtypeAa = protein.wildtypeSequence[index];
-                final isMutated =
-                state.currentMutations.any((m) => m.$1 == position);
+                final isMutated = state.currentMutations.any(
+                  (m) => m.$1 == position,
+                );
 
                 return _ResidueTile(
                   position: position,
@@ -204,10 +216,7 @@ class _ResidueTile extends StatelessWidget {
                 return ElevatedButton(
                   onPressed: () {
                     experimentBloc.add(
-                      MutationChange(
-                        position: position,
-                        aminoAcid: aminoAcid,
-                      ),
+                      MutationChange(position: position, aminoAcid: aminoAcid),
                     );
                     Navigator.of(context).pop();
                   },
@@ -227,10 +236,8 @@ class _ResidueTile extends StatelessWidget {
                       if (aminoAcid == wildtypeAa)
                         Text(
                           "WT",
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontSize: 8,
-                            height: 0.8,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(fontSize: 8, height: 0.8),
                         ),
                     ],
                   ),
@@ -268,8 +275,9 @@ class _ResidueTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 );
               }
-              final mutation =
-              state.currentMutations.firstWhere((m) => m.$1 == position);
+              final mutation = state.currentMutations.firstWhere(
+                (m) => m.$1 == position,
+              );
               return Text(
                 mutation.$2,
                 style: Theme.of(context).textTheme.titleLarge,
