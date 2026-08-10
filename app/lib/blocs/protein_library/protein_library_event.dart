@@ -18,3 +18,13 @@ final class ProteinSelected extends ProteinLibraryEvent {
   @override
   List<Object?> get props => [pdbId];
 }
+
+final class HighscoreUpdated extends ProteinLibraryEvent {
+  final String pdbId;
+  final Highscore highscore;
+
+  const HighscoreUpdated({required this.pdbId, required this.highscore});
+
+  @override
+  List<Object?> get props => [pdbId, highscore];
+}

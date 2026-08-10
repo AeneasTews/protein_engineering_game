@@ -28,18 +28,18 @@ final class SessionManagerActive extends SessionManagerState {
 final class SessionManagerFinished extends SessionManagerState {
   final int sessionId;
   final String pdbId;
-  final double score;
-  final double highscore;
+  final double bestScore;
+  final Highscore highscore;
 
   const SessionManagerFinished({
     required this.sessionId,
     required this.pdbId,
-    required this.score,
+    required this.bestScore,
     required this.highscore,
   });
 
   @override
-  List<Object?> get props => [sessionId, pdbId, score, highscore];
+  List<Object?> get props => [sessionId, pdbId, bestScore, highscore];
 }
 
 final class SessionManagerError extends SessionManagerState {

@@ -1,7 +1,6 @@
 import 'package:app/data/api_exception.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/experiment_entry.dart';
-import '../../data/models/highscore.dart';
 import '../../data/models/protein.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
 import '../../data/repositories/session_repository.dart';
@@ -88,7 +87,7 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
       final updatedHistory = [...current.history, newEntry];
 
       if (evaluationResult.turnCount >= _maxTurns) {
-        await _finishExperiment(current.protein.pdbId, updatedHistory, emit);
+        _finishExperiment(updatedHistory, emit);
       } else {
         emit(current.copyWith(
           history: updatedHistory,
@@ -102,20 +101,9 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     }
   }
 
-  Future<void> _finishExperiment(String pdbId, List<ExperimentEntry> history, Emitter<ExperimentState> emit) async {
+  void _finishExperiment(List<ExperimentEntry> history, Emitter<ExperimentState> emit) {
     final bestScore = history.map((e) => e.score).reduce((a, b) => a > b ? a : b);
-    Highscore highscore;
-    try {
-      highscore = await _sessionRepository.getHighscore(pdbId: pdbId);
-    } on ApiException {
-      highscore = Highscore(username: "", score: 0);
-    }
-
-    emit(ExperimentFinished(
-      history: history,
-      bestScore: bestScore,
-      highscore: highscore
-    ));
+    emit(ExperimentFinished(history: history, bestScore: bestScore));
   }
 
   String _buildMutant(List<(int pos, String aa)> mutations, String wildtype) {
