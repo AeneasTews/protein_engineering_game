@@ -1,5 +1,6 @@
 import 'package:app/data/api_exception.dart';
 import 'package:equatable/equatable.dart';
+import '../../constants.dart';
 import '../../data/models/experiment_entry.dart';
 import '../../data/models/protein.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -10,7 +11,6 @@ part "experiment_state.dart";
 
 class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
   final SessionRepository _sessionRepository;
-  static const int _maxTurns = 20;
 
   ExperimentBloc({required SessionRepository sessionRepository})
     : _sessionRepository = sessionRepository,
@@ -110,7 +110,7 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
 
       final updatedHistory = [...current.history, newEntry];
 
-      if (evaluationResult.turnCount >= _maxTurns) {
+      if (evaluationResult.turnCount >= GameRules.maxTurns) {
         _finishExperiment(updatedHistory, emit);
       } else {
         emit(
