@@ -88,7 +88,7 @@ class ResidueSchema(BaseModel):
     )
     name: str = Field(..., description="3-letter residue name")
     secondary_structure: str = Field(..., description="'loop', 'helix', 'sheet'")
-    atoms: list[AtomSchema]
+    atom: AtomSchema = Field(..., description="The residue's CA")
 
 
 class StructureResponse(BaseModel):

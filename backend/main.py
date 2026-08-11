@@ -142,12 +142,13 @@ async def get_structure(pdb_id: str):
                 position=r.position,
                 name=r.name,
                 secondary_structure=r.secondary_structure.value,
-                atoms=[
-                    AtomSchema(
-                        element=a.element, atom_name=a.atom_name, x=a.x, y=a.y, z=a.z
-                    )
-                    for a in r.atoms
-                ],
+                atom=AtomSchema(
+                    element=r.atom.element,
+                    atom_name=r.atom.atom_name,
+                    x=r.atom.x,
+                    y=r.atom.y,
+                    z=r.atom.z,
+                ),
             )
             for r in structure.residues
         ],

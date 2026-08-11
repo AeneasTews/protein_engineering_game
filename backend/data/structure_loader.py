@@ -46,14 +46,14 @@ class ExtractedResidue:
     position: int  # 1-based, matches wildtype_sequence[position - 1]
     name: str  # 3-letter
     secondary_structure: SecondaryStructure
-    atoms: list[ExtractedAtom]
+    atom: ExtractedAtom  # residue's CA
 
     def to_json(self) -> dict:
         return {
             "position": self.position,
             "name": self.name,
             "secondary_structure": self.secondary_structure.value,
-            "atoms": [a.to_json() for a in self.atoms],
+            "atom": self.atom.to_json(),
         }
 
 
@@ -74,7 +74,7 @@ class ExtractedStructure:
                     position=r["position"],
                     name=r["name"],
                     secondary_structure=SecondaryStructure(r["secondary_structure"]),
-                    atoms=[ExtractedAtom(**a) for a in r["atoms"]],
+                    atom=ExtractedAtom(**r["atom"]),
                 )
                 for r in data["residues"]
             ],
@@ -164,26 +164,22 @@ def _extract_window(
                 secondary_structure=_secondary_structure_at(
                     st, chain_name, residue.seqid.num
                 ),
-                atoms=[
-                    ExtractedAtom(
-                        element=ca.element.name,
-                        atom_name=ca.name,
-                        x=ca.pos.x,
-                        y=ca.pos.y,
-                        z=ca.pos.z,
-                    )
-                ],
+                atom=ExtractedAtom(
+                    element=ca.element.name,
+                    atom_name=ca.name,
+                    x=ca.pos.x,
+                    y=ca.pos.y,
+                    z=ca.pos.z,
+                ),
             )
         )
     return ExtractedStructure(pdb_id=pdb_id, residues=residues)
 
 
+# Parses structure, checks if wildtype seq is substring of sequence with coordinates or the other way around. returns whichever is shorter
 def extract_structure(
     pdb_id: str, cif_text: str, wildtype_sequence: str
 ) -> ExtractedStructure | None:
-    """
-    Parses structure, checks if wildtype seq is substring of sequence with coordinates or the other way around. returns whichever is shorter
-    """
     try:
         st = gemmi.read_structure_string(cif_text)
         st.setup_entities()
