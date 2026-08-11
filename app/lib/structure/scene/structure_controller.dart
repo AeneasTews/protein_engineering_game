@@ -14,9 +14,7 @@ class StructureController extends ChangeNotifier {
     required this.cartoon,
     required this.scene,
     required this.cameraController,
-  }) : _residueByPosition = {
-         for (final residue in structure.residues) residue.position: residue,
-       };
+  }) : _residueByPosition = {for (final residue in structure.residues) residue.position: residue};
 
   final MolecularStructure structure;
   final CartoonScene cartoon;
@@ -95,16 +93,9 @@ class StructureController extends ChangeNotifier {
     _selectionMarkerNode = node;
   }
 
-  Node _buildMarkerNode({
-    required Vector3 position,
-    required double radius,
-    required Vector4 color,
-  }) {
+  Node _buildMarkerNode({required Vector3 position, required double radius, required Vector4 color}) {
     return Node(
-      mesh: Mesh(
-        SphereGeometry(radius: radius),
-        UnlitMaterial()..baseColorFactor = color,
-      ),
+      mesh: Mesh(SphereGeometry(radius: radius), UnlitMaterial()..baseColorFactor = color),
       localTransform: Matrix4.translation(position),
     );
   }

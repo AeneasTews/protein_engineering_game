@@ -10,12 +10,7 @@ class StructurePanel extends StatelessWidget {
   final Object? loadError;
   final void Function(int position, double x, double y)? onResidueClick;
 
-  const StructurePanel({
-    super.key,
-    this.controller,
-    this.loadError,
-    this.onResidueClick,
-  });
+  const StructurePanel({super.key, this.controller, this.loadError, this.onResidueClick});
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +25,7 @@ class StructurePanel extends StatelessWidget {
         final controller = this.controller;
         if (controller == null) return;
         if (state is ExperimentActive) {
-          controller.updateMutationMarkers(
-            state.currentMutations.map((m) => m.$1),
-          );
+          controller.updateMutationMarkers(state.currentMutations.map((m) => m.$1));
         }
         if (state is ExperimentInitial) {
           controller.updateMutationMarkers(const []);
@@ -54,11 +47,8 @@ class StructurePanel extends StatelessWidget {
       children: [
         StructureViewerWidget(
           controller: controller,
-          onResidueTap: (residue, globalPosition) => onResidueClick?.call(
-            residue.position,
-            globalPosition.dx,
-            globalPosition.dy,
-          ),
+          onResidueTap: (residue, globalPosition) =>
+              onResidueClick?.call(residue.position, globalPosition.dx, globalPosition.dy),
         ),
         Positioned(
           right: StructureViewerLayout.recenterButtonMargin,

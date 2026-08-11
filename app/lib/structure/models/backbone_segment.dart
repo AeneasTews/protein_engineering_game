@@ -10,9 +10,7 @@ class BackboneSegment {
 
   final List<Residue> residues;
 
-  List<Vector3> get alphaCarbonPositions => [
-    for (final residue in residues) residue.alphaCarbon.position,
-  ];
+  List<Vector3> get alphaCarbonPositions => [for (final residue in residues) residue.alphaCarbon.position];
 }
 
 List<BackboneSegment> buildBackboneSegments(MolecularStructure structure) {

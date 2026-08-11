@@ -26,15 +26,10 @@ class App extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (context) => ProteinLibraryBloc(
-              proteinRepository: context.read<ProteinRepository>(),
-            )..add(ProteinLibraryStarted()),
+            create: (context) =>
+                ProteinLibraryBloc(proteinRepository: context.read<ProteinRepository>())..add(ProteinLibraryStarted()),
           ),
-          BlocProvider(
-            create: (context) => SessionManagerBloc(
-              sessionRepository: context.read<SessionRepository>(),
-            ),
-          ),
+          BlocProvider(create: (context) => SessionManagerBloc(sessionRepository: context.read<SessionRepository>())),
         ],
         child: MaterialApp(
           title: "Protein Engineering Game",

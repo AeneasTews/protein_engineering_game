@@ -3,11 +3,7 @@ class Protein {
   final String name;
   final String wildtypeSequence;
 
-  const Protein({
-    required this.pdbId,
-    required this.name,
-    required this.wildtypeSequence,
-  });
+  const Protein({required this.pdbId, required this.name, required this.wildtypeSequence});
 
   factory Protein.fromJson(Map<String, dynamic> json) => Protein(
     pdbId: json["pdb_id"] as String,

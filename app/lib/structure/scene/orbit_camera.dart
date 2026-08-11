@@ -36,10 +36,7 @@ class OrbitCameraController extends ChangeNotifier {
 
   void orbit(Offset delta, {double sensitivity = CameraLayout.orbitSensitivity}) {
     _yaw -= delta.dx * sensitivity;
-    _pitch = (_pitch + delta.dy * sensitivity).clamp(
-      CameraLayout.minPitch,
-      CameraLayout.maxPitch,
-    );
+    _pitch = (_pitch + delta.dy * sensitivity).clamp(CameraLayout.minPitch, CameraLayout.maxPitch);
     notifyListeners();
   }
 
@@ -74,10 +71,7 @@ class OrbitCameraController extends ChangeNotifier {
   PerspectiveCamera buildCamera() => PerspectiveCamera(
     position: _target + _eyeOffset,
     target: _target,
-    fovNear: math.max(
-      CameraLayout.fovNearMinimum,
-      _distance * CameraLayout.fovNearDistanceFactor,
-    ),
+    fovNear: math.max(CameraLayout.fovNearMinimum, _distance * CameraLayout.fovNearDistanceFactor),
     fovFar: _distance * CameraLayout.fovFarDistanceFactor + CameraLayout.fovFarBase,
   );
 }

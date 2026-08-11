@@ -7,8 +7,7 @@ import "package:app/data/models/highscore.dart";
 part "session_manager_event.dart";
 part "session_manager_state.dart";
 
-class SessionManagerBloc
-    extends Bloc<SessionManagerEvent, SessionManagerState> {
+class SessionManagerBloc extends Bloc<SessionManagerEvent, SessionManagerState> {
   final SessionRepository _sessionRepository;
 
   SessionManagerBloc({required SessionRepository sessionRepository})
@@ -19,17 +18,11 @@ class SessionManagerBloc
     on<SessionManagerClose>((_, emit) => emit(const SessionManagerInitial()));
   }
 
-  Future<void> _onCreate(
-    SessionManagerCreate event,
-    Emitter<SessionManagerState> emit,
-  ) async {
+  Future<void> _onCreate(SessionManagerCreate event, Emitter<SessionManagerState> emit) async {
     if (state is! SessionManagerInitial) return;
     emit(const SessionManagerLoading());
     try {
-      int sessionId = await _sessionRepository.createSession(
-        event.username,
-        event.pdbId,
-      );
+      int sessionId = await _sessionRepository.createSession(event.username, event.pdbId);
       emit(SessionManagerActive(sessionId: sessionId, pdbId: event.pdbId));
     } on ApiException catch (e) {
       emit(SessionManagerError("Failed to create session: ${e.statusCode}"));
@@ -38,10 +31,7 @@ class SessionManagerBloc
     }
   }
 
-  Future<void> _onFinish(
-    SessionManagerFinish event,
-    Emitter<SessionManagerState> emit,
-  ) async {
+  Future<void> _onFinish(SessionManagerFinish event, Emitter<SessionManagerState> emit) async {
     final current = state;
     if (current is! SessionManagerActive) return;
 

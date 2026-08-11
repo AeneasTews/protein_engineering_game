@@ -44,57 +44,37 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     final current = state;
     if (current is! ExperimentActive || current.isEvaluating) return;
 
-    final updatedMutations = List<(int pos, String aa)>.from(
-      current.currentMutations,
-    );
+    final updatedMutations = List<(int pos, String aa)>.from(current.currentMutations);
     final index = updatedMutations.indexWhere((m) => m.$1 == event.position);
     final wildtypeAa = current.protein.wildtypeSequence[event.position - 1];
 
     if (index != -1) {
-      if (updatedMutations[index].$2 != event.aminoAcid &&
-          event.aminoAcid != wildtypeAa) {
+      if (updatedMutations[index].$2 != event.aminoAcid && event.aminoAcid != wildtypeAa) {
         updatedMutations[index] = (event.position, event.aminoAcid);
       } else {
         updatedMutations.removeAt(index);
       }
     } else {
-      if (event.aminoAcid != wildtypeAa)
-        updatedMutations.add((event.position, event.aminoAcid));
+      if (event.aminoAcid != wildtypeAa) updatedMutations.add((event.position, event.aminoAcid));
     }
 
     emit(current.copyWith(currentMutations: updatedMutations));
   }
 
-  void _onMutationSetLoad(
-    MutationSetLoad event,
-    Emitter<ExperimentState> emit,
-  ) {
+  void _onMutationSetLoad(MutationSetLoad event, Emitter<ExperimentState> emit) {
     final current = state;
     if (current is! ExperimentActive || current.isEvaluating) return;
 
-    emit(
-      current.copyWith(
-        currentMutations: List<(int pos, String aa)>.from(event.mutations),
-      ),
-    );
+    emit(current.copyWith(currentMutations: List<(int pos, String aa)>.from(event.mutations)));
   }
 
-  Future<void> _onEvaluate(
-    Evaluate event,
-    Emitter<ExperimentState> emit,
-  ) async {
+  Future<void> _onEvaluate(Evaluate event, Emitter<ExperimentState> emit) async {
     final current = state;
-    if (current is! ExperimentActive ||
-        current.isEvaluating ||
-        current.currentMutations.isEmpty)
-      return;
+    if (current is! ExperimentActive || current.isEvaluating || current.currentMutations.isEmpty) return;
 
     emit(current.copyWith(isEvaluating: true));
 
-    final mutant = _buildMutant(
-      current.currentMutations,
-      current.protein.wildtypeSequence,
-    );
+    final mutant = _buildMutant(current.currentMutations, current.protein.wildtypeSequence);
     try {
       final evaluationResult = await _sessionRepository.evaluate(
         sessionId: current.sessionId,
@@ -127,19 +107,13 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     }
   }
 
-  void _finishExperiment(
-    List<ExperimentEntry> history,
-    Emitter<ExperimentState> emit,
-  ) {
-    final bestScore = history
-        .map((e) => e.score)
-        .reduce((a, b) => a > b ? a : b);
+  void _finishExperiment(List<ExperimentEntry> history, Emitter<ExperimentState> emit) {
+    final bestScore = history.map((e) => e.score).reduce((a, b) => a > b ? a : b);
     emit(ExperimentFinished(history: history, bestScore: bestScore));
   }
 
   String _buildMutant(List<(int pos, String aa)> mutations, String wildtype) {
-    final sorted = List<(int pos, String aa)>.from(mutations)
-      ..sort((a, b) => a.$1.compareTo(b.$1));
+    final sorted = List<(int pos, String aa)>.from(mutations)..sort((a, b) => a.$1.compareTo(b.$1));
 
     final mutationStrings = sorted.map((m) {
       final wildtypeAA = wildtype[m.$1 - 1];

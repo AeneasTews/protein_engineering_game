@@ -47,9 +47,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _loadStructure() async {
     try {
-      final structureFuture = context.read<ProteinRepository>().getStructure(
-        widget.protein.pdbId,
-      );
+      final structureFuture = context.read<ProteinRepository>().getStructure(widget.protein.pdbId);
       await Scene.initializeStaticResources();
       final structure = await structureFuture;
       if (!mounted) return;
@@ -63,9 +61,7 @@ class _GameScreenState extends State<GameScreen> {
   void _onStructureLoaded(MolecularStructure structure) {
     final CartoonScene cartoon = buildCartoonScene(structure);
     final Scene scene = Scene()
-      ..directionalLight = DirectionalLight(
-        direction: SceneLighting.directionalLightDirection,
-      );
+      ..directionalLight = DirectionalLight(direction: SceneLighting.directionalLightDirection);
     for (final node in cartoon.nodes) {
       scene.add(node);
     }
@@ -85,18 +81,14 @@ class _GameScreenState extends State<GameScreen> {
 
     final experimentState = context.read<ExperimentBloc>().state;
     if (experimentState is ExperimentActive) {
-      controller.updateMutationMarkers(
-        experimentState.currentMutations.map((m) => m.$1),
-      );
+      controller.updateMutationMarkers(experimentState.currentMutations.map((m) => m.$1));
     }
 
     setState(() => _structureController = controller);
   }
 
   (vm.Vector3, double) _boundingSphere(MolecularStructure structure) {
-    final List<vm.Vector3> positions = [
-      for (final residue in structure.residues) residue.alphaCarbon.position,
-    ];
+    final List<vm.Vector3> positions = [for (final residue in structure.residues) residue.alphaCarbon.position];
     if (positions.isEmpty) {
       return (vm.Vector3.zero(), CameraLayout.fallbackBoundingRadius);
     }
@@ -123,18 +115,14 @@ class _GameScreenState extends State<GameScreen> {
           listenWhen: (_, next) => next is ExperimentFinished,
           listener: (context, state) {
             if (state is! ExperimentFinished) return;
-            context.read<SessionManagerBloc>().add(
-              SessionManagerFinish(score: state.bestScore),
-            );
+            context.read<SessionManagerBloc>().add(SessionManagerFinish(score: state.bestScore));
           },
         ),
         BlocListener<SessionManagerBloc, SessionManagerState>(
           listenWhen: (_, next) => next is SessionManagerFinished,
           listener: (context, state) async {
             if (state is! SessionManagerFinished) return;
-            context.read<ProteinLibraryBloc>().add(
-              HighscoreUpdated(pdbId: state.pdbId, highscore: state.highscore),
-            );
+            context.read<ProteinLibraryBloc>().add(HighscoreUpdated(pdbId: state.pdbId, highscore: state.highscore));
 
             await _showFinishDialog(context, state);
 
@@ -163,8 +151,7 @@ class _GameScreenState extends State<GameScreen> {
                         width: panelW * _leftFraction,
                         child: SequencePanel(
                           protein: widget.protein,
-                          onResidueTap: (position) => _structureController
-                              ?.selectResidueAtGymPosition(position),
+                          onResidueTap: (position) => _structureController?.selectResidueAtGymPosition(position),
                         ),
                       ),
                       _DragDivider(
@@ -191,10 +178,7 @@ class _GameScreenState extends State<GameScreen> {
                           );
                         }),
                       ),
-                      SizedBox(
-                        width: panelW * rightFraction,
-                        child: const HistoryPanel(),
-                      ),
+                      SizedBox(width: panelW * rightFraction, child: const HistoryPanel()),
                     ],
                   );
                 },
@@ -249,27 +233,17 @@ class _GameScreenState extends State<GameScreen> {
                   onPressed: () {
                     Navigator.of(menuContext).pop();
                     if (aminoAcid != wildtypeAa) {
-                      experimentBloc.add(
-                        MutationChange(
-                          position: seqPosition,
-                          aminoAcid: aminoAcid,
-                        ),
-                      );
+                      experimentBloc.add(MutationChange(position: seqPosition, aminoAcid: aminoAcid));
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        aminoAcid,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text(aminoAcid, style: Theme.of(context).textTheme.titleLarge),
                       if (aminoAcid == wildtypeAa)
                         Text(
                           "WT",
@@ -289,19 +263,13 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Future<void> _showFinishDialog(
-    BuildContext context,
-    SessionManagerFinished state,
-  ) async {
+  Future<void> _showFinishDialog(BuildContext context, SessionManagerFinished state) async {
     final Widget content;
     if (state.bestScore < state.highscore.score) {
       content = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ScoreRow(
-            label: "HIGHSCORE by ${state.highscore.username}",
-            value: state.highscore.score,
-          ),
+          _ScoreRow(label: "HIGHSCORE by ${state.highscore.username}", value: state.highscore.score),
           const SizedBox(height: 12),
           _ScoreRow(label: "YOUR BEST", value: state.bestScore),
         ],
@@ -319,10 +287,7 @@ class _GameScreenState extends State<GameScreen> {
         title: const Text("Experiment Complete"),
         content: SizedBox(width: GameLayout.finishDialogWidth, child: content),
         actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text("Back to library"),
-          ),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text("Back to library")),
         ],
       ),
     );
@@ -339,10 +304,7 @@ class _ScoreRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label),
-        Text(value.toStringAsFixed(GameRules.scoreDecimalPlaces)),
-      ],
+      children: [Text(label), Text(value.toStringAsFixed(GameRules.scoreDecimalPlaces))],
     );
   }
 }
@@ -356,9 +318,7 @@ class _GameBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: GameLayout.gameBarHeight,
-      padding: const EdgeInsets.symmetric(
-        horizontal: GameLayout.gameBarHorizontalPadding,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: GameLayout.gameBarHorizontalPadding),
       child: Row(
         children: [
           Text(protein.name, style: Theme.of(context).textTheme.titleLarge),
@@ -405,10 +365,7 @@ class _DragDivider extends StatelessWidget {
         child: SizedBox(
           width: GameLayout.dividerWidth,
           child: Center(
-            child: Container(
-              width: GameLayout.dividerLineWidth,
-              color: Theme.of(context).dividerColor,
-            ),
+            child: Container(width: GameLayout.dividerLineWidth, color: Theme.of(context).dividerColor),
           ),
         ),
       ),

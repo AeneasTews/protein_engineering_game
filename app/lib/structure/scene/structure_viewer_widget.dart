@@ -9,11 +9,7 @@ import "structure_controller.dart";
 import "structure_picker.dart";
 
 class StructureViewerWidget extends StatefulWidget {
-  const StructureViewerWidget({
-    super.key,
-    required this.controller,
-    this.onResidueTap,
-  });
+  const StructureViewerWidget({super.key, required this.controller, this.onResidueTap});
 
   final StructureController controller;
 
@@ -50,11 +46,8 @@ class _StructureViewerWidgetState extends State<StructureViewerWidget> {
           child: Listener(
             onPointerSignal: (event) {
               if (event is PointerScrollEvent) {
-                final double factor =
-                    1 + event.scrollDelta.dy * CameraLayout.scrollZoomSensitivity;
-                cameraController.zoomBy(
-                  factor.clamp(CameraLayout.zoomFactorMin, CameraLayout.zoomFactorMax),
-                );
+                final double factor = 1 + event.scrollDelta.dy * CameraLayout.scrollZoomSensitivity;
+                cameraController.zoomBy(factor.clamp(CameraLayout.zoomFactorMin, CameraLayout.zoomFactorMax));
               }
             },
             child: GestureDetector(
@@ -73,10 +66,7 @@ class _StructureViewerWidgetState extends State<StructureViewerWidget> {
                   widget.onResidueTap?.call(residue, details.globalPosition);
                 }
               },
-              child: SceneView(
-                controller.scene,
-                cameraBuilder: (elapsed) => cameraController.buildCamera(),
-              ),
+              child: SceneView(controller.scene, cameraBuilder: (elapsed) => cameraController.buildCamera()),
             ),
           ),
         );
