@@ -1,10 +1,17 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:flutter_scene/scene.dart";
+import "package:vector_math/vector_math.dart" as vm;
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
+import "../constants.dart";
 import "../data/models/protein.dart";
-import "../molstar/molstar_controller.dart";
+import "../data/repositories/protein_repository.dart";
+import "../structure/models/molecular_structure.dart";
+import "../structure/scene/cartoon_builder.dart";
+import "../structure/scene/orbit_camera.dart";
+import "../structure/scene/structure_controller.dart";
 import "../widgets/history_panel.dart";
 import "../widgets/sequence_panel.dart";
 import "../widgets/structure_panel.dart";
@@ -19,15 +26,93 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  final MolstarController _molstar = MolstarController();
+  StructureController? _structureController;
+  Object? _structureLoadError;
 
-  double _leftFraction = 0.2;
-  double _midFraction = 0.6;
-  static const double _minFraction = 0.15;
+  double _leftFraction = GameLayout.initialLeftFraction;
+  double _midFraction = GameLayout.initialMidFraction;
 
   @override
   void initState() {
     super.initState();
+    _loadStructure();
+  }
+
+  @override
+  void dispose() {
+    _structureController?.cameraController.dispose();
+    _structureController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStructure() async {
+    try {
+      final structureFuture = context.read<ProteinRepository>().getStructure(
+        widget.protein.pdbId,
+      );
+      await Scene.initializeStaticResources();
+      final structure = await structureFuture;
+      if (!mounted) return;
+      _onStructureLoaded(structure);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _structureLoadError = e);
+    }
+  }
+
+  void _onStructureLoaded(MolecularStructure structure) {
+    final CartoonScene cartoon = buildCartoonScene(structure);
+    final Scene scene = Scene()
+      ..directionalLight = DirectionalLight(
+        direction: SceneLighting.directionalLightDirection,
+      );
+    for (final node in cartoon.nodes) {
+      scene.add(node);
+    }
+
+    final (vm.Vector3 center, double radius) = _boundingSphere(structure);
+    final OrbitCameraController cameraController = OrbitCameraController(
+      target: center,
+      distance: radius * CameraLayout.initialDistanceFactor,
+    )..minDistance = radius * CameraLayout.minDistanceFactor;
+
+    final StructureController controller = StructureController(
+      structure: structure,
+      cartoon: cartoon,
+      scene: scene,
+      cameraController: cameraController,
+    );
+
+    final experimentState = context.read<ExperimentBloc>().state;
+    if (experimentState is ExperimentActive) {
+      controller.updateMutationMarkers(
+        experimentState.currentMutations.map((m) => m.$1),
+      );
+    }
+
+    setState(() => _structureController = controller);
+  }
+
+  (vm.Vector3, double) _boundingSphere(MolecularStructure structure) {
+    final List<vm.Vector3> positions = [
+      for (final residue in structure.residues) residue.alphaCarbon.position,
+    ];
+    if (positions.isEmpty) {
+      return (vm.Vector3.zero(), CameraLayout.fallbackBoundingRadius);
+    }
+
+    final vm.Vector3 center = vm.Vector3.zero();
+    for (final position in positions) {
+      center.add(position);
+    }
+    center.scale(1.0 / positions.length);
+
+    double radius = 0.0;
+    for (final position in positions) {
+      final double distance = position.distanceTo(center);
+      if (distance > radius) radius = distance;
+    }
+    return (center, radius == 0.0 ? CameraLayout.fallbackBoundingRadius : radius);
   }
 
   @override
@@ -68,7 +153,7 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  const divW = 8.0;
+                  const divW = GameLayout.dividerWidth;
                   final panelW = constraints.maxWidth - 2 * divW;
                   final rightFraction = 1 - _leftFraction - _midFraction;
 
@@ -78,32 +163,31 @@ class _GameScreenState extends State<GameScreen> {
                         width: panelW * _leftFraction,
                         child: SequencePanel(
                           protein: widget.protein,
-                          onResidueTap: (position) =>
-                              _molstar.selectResidue(position),
+                          onResidueTap: (position) => _structureController
+                              ?.selectResidueAtGymPosition(position),
                         ),
                       ),
                       _DragDivider(
                         onDragDelta: (dx) => setState(() {
                           _leftFraction = (_leftFraction + dx / panelW).clamp(
-                            _minFraction,
-                            1 - _midFraction - _minFraction,
+                            GameLayout.minPanelFraction,
+                            1 - _midFraction - GameLayout.minPanelFraction,
                           );
                         }),
                       ),
                       SizedBox(
                         width: panelW * _midFraction,
                         child: StructurePanel(
-                          pdbId: widget.protein.pdbId,
-                          wildtypeSequence: widget.protein.wildtypeSequence,
-                          controller: _molstar,
+                          controller: _structureController,
+                          loadError: _structureLoadError,
                           onResidueClick: _showPickerFromStructure,
                         ),
                       ),
                       _DragDivider(
                         onDragDelta: (dx) => setState(() {
                           _midFraction = (_midFraction + dx / panelW).clamp(
-                            _minFraction,
-                            1 - _leftFraction - _minFraction,
+                            GameLayout.minPanelFraction,
+                            1 - _leftFraction - GameLayout.minPanelFraction,
                           );
                         }),
                       ),
@@ -132,7 +216,12 @@ class _GameScreenState extends State<GameScreen> {
 
     showMenu<void>(
       context: context,
-      position: RelativeRect.fromLTRB(x + 8, y + 8, x + 408, 0),
+      position: RelativeRect.fromLTRB(
+        x + PickerMenuLayout.cursorOffset,
+        y + PickerMenuLayout.cursorOffset,
+        x + PickerMenuLayout.cursorOffset + PickerMenuLayout.menuWidth,
+        0,
+      ),
       items: [
         PopupMenuItem(
           enabled: false,
@@ -145,17 +234,17 @@ class _GameScreenState extends State<GameScreen> {
         PopupMenuItem(
           enabled: false,
           child: SizedBox(
-            width: 400,
-            height: 220,
+            width: PickerMenuLayout.menuWidth,
+            height: PickerMenuLayout.menuHeight,
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                mainAxisSpacing: 5,
-                crossAxisSpacing: 5,
+                crossAxisCount: PickerMenuLayout.gridCrossAxisCount,
+                mainAxisSpacing: PickerMenuLayout.gridSpacing,
+                crossAxisSpacing: PickerMenuLayout.gridSpacing,
               ),
-              itemCount: aminoAcids.length,
+              itemCount: AminoAcids.all.length,
               itemBuilder: (menuContext, index) {
-                final aminoAcid = aminoAcids[index];
+                final aminoAcid = AminoAcids.all[index];
                 return ElevatedButton(
                   onPressed: () {
                     Navigator.of(menuContext).pop();
@@ -171,7 +260,7 @@ class _GameScreenState extends State<GameScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
                     ),
                   ),
                   child: Column(
@@ -184,8 +273,10 @@ class _GameScreenState extends State<GameScreen> {
                       if (aminoAcid == wildtypeAa)
                         Text(
                           "WT",
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(fontSize: 8, height: 0.8),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontSize: PickerMenuLayout.wildtypeLabelFontSize,
+                            height: PickerMenuLayout.wildtypeLabelLineHeight,
+                          ),
                         ),
                     ],
                   ),
@@ -226,7 +317,7 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Experiment Complete"),
-        content: SizedBox(width: 340, child: content),
+        content: SizedBox(width: GameLayout.finishDialogWidth, child: content),
         actions: [
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -248,7 +339,10 @@ class _ScoreRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [Text(label), Text(value.toStringAsFixed(2))],
+      children: [
+        Text(label),
+        Text(value.toStringAsFixed(GameRules.scoreDecimalPlaces)),
+      ],
     );
   }
 }
@@ -261,8 +355,10 @@ class _GameBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      height: GameLayout.gameBarHeight,
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameLayout.gameBarHorizontalPadding,
+      ),
       child: Row(
         children: [
           Text(protein.name, style: Theme.of(context).textTheme.titleLarge),
@@ -277,9 +373,9 @@ class _GameBar extends StatelessWidget {
                   Text("ROUND", style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(width: 8),
                   Text(
-                    "${state.turnCount} / 20",
+                    "${state.turnCount} / ${GameRules.maxTurns}",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: state.turnCount >= 18
+                      color: state.turnCount >= GameRules.turnWarningThreshold
                           ? Theme.of(context).colorScheme.error
                           : Theme.of(context).colorScheme.primary,
                     ),
@@ -307,9 +403,12 @@ class _DragDivider extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onHorizontalDragUpdate: (d) => onDragDelta(d.delta.dx),
         child: SizedBox(
-          width: 8,
+          width: GameLayout.dividerWidth,
           child: Center(
-            child: Container(width: 1, color: Theme.of(context).dividerColor),
+            child: Container(
+              width: GameLayout.dividerLineWidth,
+              color: Theme.of(context).dividerColor,
+            ),
           ),
         ),
       ),
