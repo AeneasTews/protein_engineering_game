@@ -1,10 +1,16 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:flutter_scene/scene.dart";
+import "package:vector_math/vector_math.dart" as vm;
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../data/models/protein.dart";
-import "../molstar/molstar_controller.dart";
+import "../data/repositories/protein_repository.dart";
+import "../structure/models/molecular_structure.dart";
+import "../structure/scene/cartoon_builder.dart";
+import "../structure/scene/orbit_camera.dart";
+import "../structure/scene/structure_controller.dart";
 import "../widgets/history_panel.dart";
 import "../widgets/sequence_panel.dart";
 import "../widgets/structure_panel.dart";
@@ -19,7 +25,8 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  final MolstarController _molstar = MolstarController();
+  StructureController? _structureController;
+  Object? _structureLoadError;
 
   double _leftFraction = 0.2;
   double _midFraction = 0.6;
@@ -28,6 +35,82 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    _loadStructure();
+  }
+
+  @override
+  void dispose() {
+    _structureController?.cameraController.dispose();
+    _structureController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStructure() async {
+    try {
+      final structureFuture = context.read<ProteinRepository>().getStructure(
+        widget.protein.pdbId,
+      );
+      await Scene.initializeStaticResources();
+      final structure = await structureFuture;
+      if (!mounted) return;
+      _onStructureLoaded(structure);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _structureLoadError = e);
+    }
+  }
+
+  void _onStructureLoaded(MolecularStructure structure) {
+    final CartoonScene cartoon = buildCartoonScene(structure);
+    final Scene scene = Scene()
+      ..directionalLight = DirectionalLight(
+        direction: vm.Vector3(-0.4, -1.0, -0.3),
+      );
+    for (final node in cartoon.nodes) {
+      scene.add(node);
+    }
+
+    final (vm.Vector3 center, double radius) = _boundingSphere(structure);
+    final OrbitCameraController cameraController = OrbitCameraController(
+      target: center,
+      distance: radius * 2.4,
+    )..minDistance = radius * 0.05;
+
+    final StructureController controller = StructureController(
+      structure: structure,
+      cartoon: cartoon,
+      scene: scene,
+      cameraController: cameraController,
+    );
+
+    final experimentState = context.read<ExperimentBloc>().state;
+    if (experimentState is ExperimentActive) {
+      controller.updateMutationMarkers(
+        experimentState.currentMutations.map((m) => m.$1),
+      );
+    }
+
+    setState(() => _structureController = controller);
+  }
+
+  (vm.Vector3, double) _boundingSphere(MolecularStructure structure) {
+    final List<vm.Vector3> positions = [
+      for (final residue in structure.residues) residue.alphaCarbon.position,
+    ];
+    if (positions.isEmpty) return (vm.Vector3.zero(), 50.0);
+
+    final vm.Vector3 center = vm.Vector3.zero();
+    for (final position in positions) {
+      center.add(position);
+    }
+    center.scale(1.0 / positions.length);
+
+    double radius = 0.0;
+    for (final position in positions) {
+      final double distance = position.distanceTo(center);
+      if (distance > radius) radius = distance;
+    }
+    return (center, radius == 0.0 ? 50.0 : radius);
   }
 
   @override
@@ -78,8 +161,8 @@ class _GameScreenState extends State<GameScreen> {
                         width: panelW * _leftFraction,
                         child: SequencePanel(
                           protein: widget.protein,
-                          onResidueTap: (position) =>
-                              _molstar.selectResidue(position),
+                          onResidueTap: (position) => _structureController
+                              ?.selectResidueAtGymPosition(position),
                         ),
                       ),
                       _DragDivider(
@@ -93,9 +176,8 @@ class _GameScreenState extends State<GameScreen> {
                       SizedBox(
                         width: panelW * _midFraction,
                         child: StructurePanel(
-                          pdbId: widget.protein.pdbId,
-                          wildtypeSequence: widget.protein.wildtypeSequence,
-                          controller: _molstar,
+                          controller: _structureController,
+                          loadError: _structureLoadError,
                           onResidueClick: _showPickerFromStructure,
                         ),
                       ),

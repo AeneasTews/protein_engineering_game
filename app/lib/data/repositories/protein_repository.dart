@@ -1,5 +1,6 @@
 import "dart:convert";
 import "package:http/http.dart" as http;
+import "../../structure/models/molecular_structure.dart";
 import "../models/highscore.dart";
 import "../models/protein.dart";
 import "../api_exception.dart";
@@ -34,12 +35,12 @@ class ProteinRepository {
     );
   }
 
-  Future<String> getPdb(String pdbId) async {
-    final response = await _client.get(
-      Uri.parse("https://files.rcsb.org/download/$pdbId.pdb"),
-    );
+  Future<MolecularStructure> getStructure(String pdbId) async {
+    final response = await _client.get(Uri.parse("$baseUrl/structure/$pdbId"));
     _assertOk(response);
-    return response.body;
+    return MolecularStructure.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   void _assertOk(http.Response response) {

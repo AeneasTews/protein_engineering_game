@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:web/web.dart" as web;
+import "package:url_launcher/url_launcher.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
@@ -77,9 +77,9 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: TextButton(
-                        onPressed: () => web.window.open(
-                          "https://biocentral.cloud/",
-                          "_blank",
+                        onPressed: () => launchUrl(
+                          Uri.parse("https://biocentral.cloud/"),
+                          webOnlyWindowName: "_blank",
                         ),
                         child: const Text(
                           "Impressum",
@@ -103,8 +103,9 @@ class _ProteinGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ProteinLibraryBloc, ProteinLibraryState>(
       builder: (context, state) {
-        if (state is ProteinLibraryLoading)
+        if (state is ProteinLibraryLoading) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         if (state is ProteinLibraryError) {
           return Center(

@@ -1,40 +1,20 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
-import "../molstar/molstar_controller.dart";
-import "../molstar/molstar_view.dart";
+import "../structure/scene/structure_controller.dart";
+import "../structure/scene/structure_viewer_widget.dart";
 
-class StructurePanel extends StatefulWidget {
-  final String pdbId;
-  final String wildtypeSequence;
-  final MolstarController controller;
-
+class StructurePanel extends StatelessWidget {
+  final StructureController? controller;
+  final Object? loadError;
   final void Function(int position, double x, double y)? onResidueClick;
 
   const StructurePanel({
     super.key,
-    required this.pdbId,
-    required this.wildtypeSequence,
-    required this.controller,
+    this.controller,
+    this.loadError,
     this.onResidueClick,
   });
-
-  @override
-  State<StructurePanel> createState() => _StructurePanelState();
-}
-
-class _StructurePanelState extends State<StructurePanel> {
-  @override
-  void initState() {
-    super.initState();
-
-    widget.controller.onResidueEvent = (seqPosition, eventType, x, y) {
-      //debugPrint("[StructurePanel] Residue clicked: seqPosition=$seqPosition eventType=$eventType");
-      if (eventType == "click") {
-        widget.onResidueClick?.call(seqPosition, x, y);
-      }
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,39 +26,35 @@ class _StructurePanelState extends State<StructurePanel> {
         return next is ExperimentInitial;
       },
       listener: (context, state) {
+        final controller = this.controller;
+        if (controller == null) return;
         if (state is ExperimentActive) {
-          if (state.currentMutations.isEmpty) {
-            widget.controller.clearHighlight();
-          } else {
-            widget.controller.updateMutationColors(
-              state.currentMutations.map((m) => m.$1).toList(),
-            );
-          }
+          controller.updateMutationMarkers(
+            state.currentMutations.map((m) => m.$1),
+          );
         }
         if (state is ExperimentInitial) {
-          widget.controller.clearHighlight();
+          controller.updateMutationMarkers(const []);
         }
       },
-      child: Column(
-        children: [
-          /*Container(
-            color: Colors.black12,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                const Text("Last event: ", style: TextStyle(fontSize: 12)),
-                Text(_lastEvent, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-          ),*/
-          Expanded(
-            child: MolstarView(
-              controller: widget.controller,
-              pdbId: widget.pdbId,
-              wildtypeSequence: widget.wildtypeSequence,
-            ),
-          ),
-        ],
+      child: _content(),
+    );
+  }
+
+  Widget _content() {
+    final controller = this.controller;
+    if (loadError != null) {
+      return Center(child: Text("Failed to load structure: $loadError"));
+    }
+    if (controller == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return StructureViewerWidget(
+      controller: controller,
+      onResidueTap: (residue, globalPosition) => onResidueClick?.call(
+        residue.position,
+        globalPosition.dx,
+        globalPosition.dy,
       ),
     );
   }
