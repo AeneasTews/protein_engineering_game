@@ -20,21 +20,14 @@ final class ProteinLibraryLoaded extends ProteinLibraryState {
   final Map<String, Highscore> highscores;
   final String? selectedPdbId;
 
-  const ProteinLibraryLoaded({
-    required this.proteins,
-    required this.highscores,
-    this.selectedPdbId,
-  });
+  const ProteinLibraryLoaded({required this.proteins, required this.highscores, this.selectedPdbId});
 
-  ProteinLibraryLoaded copyWith({
-    List<Protein>? proteins,
-    Map<String, Highscore>? highscores,
-    String? selectedPdbId,
-  }) => ProteinLibraryLoaded(
-    proteins: proteins ?? this.proteins,
-    highscores: highscores ?? this.highscores,
-    selectedPdbId: selectedPdbId ?? this.selectedPdbId,
-  );
+  ProteinLibraryLoaded copyWith({List<Protein>? proteins, Map<String, Highscore>? highscores, String? selectedPdbId}) =>
+      ProteinLibraryLoaded(
+        proteins: proteins ?? this.proteins,
+        highscores: highscores ?? this.highscores,
+        selectedPdbId: selectedPdbId ?? this.selectedPdbId,
+      );
 
   @override
   List<Object?> get props => [proteins, highscores, selectedPdbId];

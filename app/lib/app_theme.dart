@@ -42,8 +42,7 @@ class AppTheme {
     'G': Color(0xFF9D9D9D),
   };
 
-  static Color colorForAminoAcid(String aa) =>
-      aminoAcidColors[aa] ?? const Color(0xFF9D9D9D);
+  static Color colorForAminoAcid(String aa) => aminoAcidColors[aa] ?? const Color(0xFF9D9D9D);
 
   // ---------------------------------------------------------------------------
   // ThemeData
@@ -52,41 +51,14 @@ class AppTheme {
   static ThemeData get dark => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: background,
-    colorScheme: const ColorScheme.dark(
-      surface: surface,
-      primary: accent,
-      secondary: success,
-      error: danger,
-    ),
+    colorScheme: const ColorScheme.dark(surface: surface, primary: accent, secondary: success, error: danger),
     fontFamily: 'JetBrainsMono',
     textTheme: const TextTheme(
-      displayLarge: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        color: textPrimary,
-        letterSpacing: -0.5,
-      ),
-      titleLarge: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: textPrimary,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: textPrimary,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        color: textSecondary,
-      ),
-      labelSmall: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: textMuted,
-        letterSpacing: 0.5,
-      ),
+      displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -0.5),
+      titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
+      titleMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textPrimary),
+      bodyMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: textSecondary),
+      labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: textMuted, letterSpacing: 0.5),
     ),
     dividerColor: border,
     cardColor: surfaceRaised,

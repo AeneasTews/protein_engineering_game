@@ -47,15 +47,7 @@ final class ExperimentActive extends ExperimentState {
   );
 
   @override
-  List<Object?> get props => [
-    sessionId,
-    protein,
-    currentMutations,
-    history,
-    lastScore,
-    turnCount,
-    isEvaluating,
-  ];
+  List<Object?> get props => [sessionId, protein, currentMutations, history, lastScore, turnCount, isEvaluating];
 }
 
 final class ExperimentFinished extends ExperimentState {

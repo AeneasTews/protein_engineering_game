@@ -14,15 +14,7 @@ class HistoryPanel extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PanelHeader(),
-          Divider(),
-          _SubmitButton(),
-          Divider(),
-          _History(),
-          Divider(),
-          _HistoryGraph(),
-        ],
+        children: [_PanelHeader(), Divider(), _SubmitButton(), Divider(), _History(), Divider(), _HistoryGraph()],
       ),
     );
   }
@@ -40,9 +32,7 @@ class _PanelHeader extends StatelessWidget {
 
         if (state.history.isNotEmpty) {
           lastScore = state.lastScore;
-          bestScore = state.history
-              .map((h) => h.score)
-              .reduce((a, b) => a > b ? a : b);
+          bestScore = state.history.map((h) => h.score).reduce((a, b) => a > b ? a : b);
         }
 
         return IntrinsicHeight(
@@ -77,12 +67,8 @@ class _StatBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          score == null
-              ? "-"
-              : score!.toStringAsFixed(GameRules.scoreDecimalPlaces),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(color: _scoreColor(score, context)),
+          score == null ? "-" : score!.toStringAsFixed(GameRules.scoreDecimalPlaces),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(color: _scoreColor(score, context)),
         ),
         Text(label, style: Theme.of(context).textTheme.labelLarge),
       ],
@@ -122,9 +108,7 @@ class _SubmitButton extends StatelessWidget {
             backgroundColor: isSubmittable
                 ? Theme.of(context).colorScheme.primaryContainer
                 : Theme.of(context).colorScheme.secondaryContainer,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
             minimumSize: UiLayout.fullWidthButtonSize,
           ),
           child: Text(
@@ -149,10 +133,7 @@ class _History extends StatelessWidget {
           child: ListView.builder(
             itemCount: state.history.length,
             itemBuilder: (context, index) {
-              return _HistoryEntry(
-                experimentEntry:
-                    state.history[state.history.length - index - 1],
-              );
+              return _HistoryEntry(experimentEntry: state.history[state.history.length - index - 1]);
             },
           ),
         );
@@ -170,9 +151,7 @@ class _HistoryEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.onInverseSurface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -186,28 +165,16 @@ class _HistoryEntry extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        "Round ${experimentEntry.turnCount}",
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
+                      Text("Round ${experimentEntry.turnCount}", style: Theme.of(context).textTheme.bodyLarge),
                       VerticalDivider(),
-                      Text(
-                        "Score:",
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
+                      Text("Score:", style: Theme.of(context).textTheme.bodyLarge),
                       Padding(
                         padding: EdgeInsets.only(left: 4),
                         child: Text(
-                          experimentEntry.score.toStringAsFixed(
-                            GameRules.scoreDecimalPlaces,
-                          ),
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: _scoreColor(
-                                  experimentEntry.score,
-                                  context,
-                                ),
-                              ),
+                          experimentEntry.score.toStringAsFixed(GameRules.scoreDecimalPlaces),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(color: _scoreColor(experimentEntry.score, context)),
                         ),
                       ),
                     ],
@@ -216,18 +183,14 @@ class _HistoryEntry extends StatelessWidget {
                 Divider(),
                 Text(
                   experimentEntry.mutant,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(overflow: TextOverflow.ellipsis),
                 ),
               ],
             ),
           ),
           TextButton(
             onPressed: () {
-              context.read<ExperimentBloc>().add(
-                MutationSetLoad(mutations: experimentEntry.mutations),
-              );
+              context.read<ExperimentBloc>().add(MutationSetLoad(mutations: experimentEntry.mutations));
             },
             child: Icon(Icons.keyboard_backspace),
           ),
@@ -242,25 +205,18 @@ class _HistoryGraph extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ExperimentBloc, ExperimentState>(
       builder: (context, state) {
-        if (state is! ExperimentActive || state.history.isEmpty)
-          return const SizedBox.shrink();
+        if (state is! ExperimentActive || state.history.isEmpty) return const SizedBox.shrink();
 
         final history = state.history;
-        final maxScore = history
-            .map((e) => e.score)
-            .reduce((a, b) => a > b ? a : b);
-        final minScore = history
-            .map((e) => e.score)
-            .reduce((a, b) => a < b ? a : b);
+        final maxScore = history.map((e) => e.score).reduce((a, b) => a > b ? a : b);
+        final minScore = history.map((e) => e.score).reduce((a, b) => a < b ? a : b);
 
         return AspectRatio(
           aspectRatio: UiLayout.historyChartAspectRatio,
           child: LineChart(
             LineChartData(
               minX: 0,
-              maxX: history.length < 2
-                  ? 1.0
-                  : history.last.turnCount.toDouble(),
+              maxX: history.length < 2 ? 1.0 : history.last.turnCount.toDouble(),
               minY: minScore - UiLayout.chartScorePadding,
               maxY: maxScore + UiLayout.chartScorePadding,
               gridData: FlGridData(
@@ -268,17 +224,11 @@ class _HistoryGraph extends StatelessWidget {
                 drawHorizontalLine: true,
                 drawVerticalLine: true,
                 horizontalInterval: UiLayout.chartGridInterval,
-                verticalInterval: history.length < 2
-                    ? UiLayout.chartGridInterval
-                    : null,
+                verticalInterval: history.length < 2 ? UiLayout.chartGridInterval : null,
               ),
               titlesData: FlTitlesData(
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
@@ -307,25 +257,16 @@ class _HistoryGraph extends StatelessWidget {
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (List<LineBarSpot> touchedSpots) {
                     return touchedSpots.map((LineBarSpot touchedBarSpot) {
-                      final FlSpot spot =
-                          touchedBarSpot.bar.spots[touchedBarSpot.spotIndex];
+                      final FlSpot spot = touchedBarSpot.bar.spots[touchedBarSpot.spotIndex];
                       final int turn = spot.x.toInt();
-                      final String score = spot.y.toStringAsFixed(
-                        GameRules.scoreDecimalPlacesDetailed,
-                      );
+                      final String score = spot.y.toStringAsFixed(GameRules.scoreDecimalPlacesDetailed);
                       return LineTooltipItem(
                         "Turn $turn\n",
-                        TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSecondaryContainer,
-                        ),
+                        TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer),
                         children: [
                           TextSpan(
                             text: "Score: $score",
-                            style: TextStyle(
-                              color: _scoreColor(spot.y, context),
-                            ),
+                            style: TextStyle(color: _scoreColor(spot.y, context)),
                           ),
                         ],
                       );
@@ -341,8 +282,6 @@ class _HistoryGraph extends StatelessWidget {
   }
 
   List<FlSpot> _buildChartData(List<ExperimentEntry> history) {
-    return history
-        .map((e) => FlSpot(e.turnCount.toDouble(), e.score))
-        .toList(growable: false);
+    return history.map((e) => FlSpot(e.turnCount.toDouble(), e.score)).toList(growable: false);
   }
 }

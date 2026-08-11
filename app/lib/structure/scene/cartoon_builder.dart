@@ -23,9 +23,7 @@ List<Vector2> _flattenedEllipseProfile({
   final List<Vector2> profile = [];
   for (int i = 0; i < segments; i++) {
     final double theta = 2 * math.pi * i / segments;
-    profile.add(
-      Vector2(halfThickness * math.cos(theta), halfWidth * math.sin(theta)),
-    );
+    profile.add(Vector2(halfThickness * math.cos(theta), halfWidth * math.sin(theta)));
   }
   return profile;
 }

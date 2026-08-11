@@ -34,22 +34,14 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
           if (state is SessionManagerActive) {
             final libraryState = context.read<ProteinLibraryBloc>().state;
             if (libraryState is! ProteinLibraryLoaded) return;
-            final protein = libraryState.proteins.firstWhere(
-              (p) => p.pdbId == libraryState.selectedPdbId,
-            );
+            final protein = libraryState.proteins.firstWhere((p) => p.pdbId == libraryState.selectedPdbId);
 
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => BlocProvider(
                   create: (context) =>
-                      ExperimentBloc(
-                        sessionRepository: context.read<SessionRepository>(),
-                      )..add(
-                        ExperimentStart(
-                          sessionId: state.sessionId,
-                          protein: protein,
-                        ),
-                      ),
+                      ExperimentBloc(sessionRepository: context.read<SessionRepository>())
+                        ..add(ExperimentStart(sessionId: state.sessionId, protein: protein)),
                   child: GameScreen(protein: protein),
                 ),
               ),
@@ -68,9 +60,7 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
                 children: [
                   Padding(
                     padding: EdgeInsets.all(8),
-                    child: _SessionPanel(
-                      usernameController: _usernameController,
-                    ),
+                    child: _SessionPanel(usernameController: _usernameController),
                   ),
                   Spacer(),
                   Padding(
@@ -78,14 +68,8 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: TextButton(
-                        onPressed: () => launchUrl(
-                          Uri.parse(ExternalLinks.impressum),
-                          webOnlyWindowName: "_blank",
-                        ),
-                        child: const Text(
-                          "Impressum",
-                          style: TextStyle(fontSize: 12),
-                        ),
+                        onPressed: () => launchUrl(Uri.parse(ExternalLinks.impressum), webOnlyWindowName: "_blank"),
+                        child: const Text("Impressum", style: TextStyle(fontSize: 12)),
                       ),
                     ),
                   ),
@@ -115,9 +99,7 @@ class _ProteinGrid extends StatelessWidget {
                 Text(state.message),
                 const SizedBox(height: 10),
                 TextButton(
-                  onPressed: () => context.read<ProteinLibraryBloc>().add(
-                    const ProteinLibraryStarted(),
-                  ),
+                  onPressed: () => context.read<ProteinLibraryBloc>().add(const ProteinLibraryStarted()),
                   child: const Text("Retry"),
                 ),
               ],
@@ -138,11 +120,7 @@ class _ProteinGrid extends StatelessWidget {
               final protein = state.proteins[index];
               final isSelected = state.selectedPdbId == protein.pdbId;
               final highscore = state.highscores[protein.pdbId];
-              return _ProteinCard(
-                protein: protein,
-                isSelected: isSelected,
-                highscore: highscore,
-              );
+              return _ProteinCard(protein: protein, isSelected: isSelected, highscore: highscore);
             },
           );
         }
@@ -158,27 +136,17 @@ class _ProteinCard extends StatelessWidget {
   final bool isSelected;
   final Highscore? highscore;
 
-  const _ProteinCard({
-    required this.protein,
-    required this.isSelected,
-    required this.highscore,
-  });
+  const _ProteinCard({required this.protein, required this.isSelected, required this.highscore});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
-      elevation: isSelected
-          ? ProteinLibraryLayout.selectedCardElevation
-          : ProteinLibraryLayout.unselectedCardElevation,
+      elevation: isSelected ? ProteinLibraryLayout.selectedCardElevation : ProteinLibraryLayout.unselectedCardElevation,
       clipBehavior: Clip.antiAlias,
       shadowColor: isSelected ? Theme.of(context).colorScheme.primary : null,
       child: InkWell(
-        onTap: () => {
-          context.read<ProteinLibraryBloc>().add(
-            ProteinSelected(protein.pdbId),
-          ),
-        },
+        onTap: () => {context.read<ProteinLibraryBloc>().add(ProteinSelected(protein.pdbId))},
         child: Padding(
           padding: EdgeInsets.all(8),
           child: Column(
@@ -186,22 +154,15 @@ class _ProteinCard extends StatelessWidget {
             children: [
               Text(
                 protein.name,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.primary),
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
-              Text(
-                protein.pdbId.toUpperCase(),
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(protein.pdbId.toUpperCase(), overflow: TextOverflow.ellipsis),
               const SizedBox(height: 10),
               Text(
                 "${protein.wildtypeSequence.length} AA",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.tertiary,
-                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.tertiary),
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 10),
@@ -209,9 +170,7 @@ class _ProteinCard extends StatelessWidget {
                 highscore != null
                     ? "🏆 ${highscore!.username} ${highscore!.score.toStringAsFixed(GameRules.scoreDecimalPlaces)}"
                     : "🏆 —",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  overflow: TextOverflow.ellipsis,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
@@ -230,9 +189,7 @@ class _SessionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ProteinLibraryBloc, ProteinLibraryState>(
       builder: (context, libraryState) {
-        final hasSelection =
-            libraryState is ProteinLibraryLoaded &&
-            libraryState.selectedPdbId != null;
+        final hasSelection = libraryState is ProteinLibraryLoaded && libraryState.selectedPdbId != null;
 
         return BlocBuilder<SessionManagerBloc, SessionManagerState>(
           builder: (context, sessionState) {
@@ -241,9 +198,7 @@ class _SessionPanel extends StatelessWidget {
             return Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Padding(
                 padding: EdgeInsets.all(4),
@@ -252,18 +207,13 @@ class _SessionPanel extends StatelessWidget {
                   children: [
                     TextField(
                       controller: usernameController,
-                      decoration: InputDecoration(
-                        hintText: "Enter your name",
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: InputDecoration(hintText: "Enter your name", border: OutlineInputBorder()),
                     ),
 
                     const SizedBox(height: 8),
 
                     Text(
-                      hasSelection
-                          ? "Protein: ${libraryState.selectedPdbId!}"
-                          : "Select Protein",
+                      hasSelection ? "Protein: ${libraryState.selectedPdbId!}" : "Select Protein",
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
 
@@ -277,24 +227,15 @@ class _SessionPanel extends StatelessWidget {
                         if (username.isEmpty) return;
 
                         final pdbId = libraryState.selectedPdbId!;
-                        context.read<SessionManagerBloc>().add(
-                          SessionManagerCreate(
-                            username: username,
-                            pdbId: pdbId,
-                          ),
-                        );
+                        context.read<SessionManagerBloc>().add(SessionManagerCreate(username: username, pdbId: pdbId));
                       },
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadiusGeometry.circular(
-                            UiLayout.cardBorderRadius,
-                          ),
+                          borderRadius: BorderRadiusGeometry.circular(UiLayout.cardBorderRadius),
                         ),
                         minimumSize: UiLayout.fullWidthButtonSize,
                       ),
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text("Start Experiment"),
+                      child: isLoading ? const CircularProgressIndicator() : const Text("Start Experiment"),
                     ),
                   ],
                 ),

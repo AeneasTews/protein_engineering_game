@@ -15,9 +15,7 @@ class ProteinRepository {
     final response = await _client.get(Uri.parse("$baseUrl/proteins"));
     _assertOk(response);
     final List<dynamic> json = jsonDecode(response.body);
-    return json
-        .map((e) => Protein.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return json.map((e) => Protein.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<Map<String, Highscore>> getHighscores(List<String> pdbIds) async {
@@ -29,18 +27,13 @@ class ProteinRepository {
     _assertOk(response);
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     final highscoresJson = json["highscores"] as Map<String, dynamic>;
-    return highscoresJson.map(
-      (key, value) =>
-          MapEntry(key, Highscore.fromJson(value as Map<String, dynamic>)),
-    );
+    return highscoresJson.map((key, value) => MapEntry(key, Highscore.fromJson(value as Map<String, dynamic>)));
   }
 
   Future<MolecularStructure> getStructure(String pdbId) async {
     final response = await _client.get(Uri.parse("$baseUrl/structure/$pdbId"));
     _assertOk(response);
-    return MolecularStructure.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return MolecularStructure.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   void _assertOk(http.Response response) {

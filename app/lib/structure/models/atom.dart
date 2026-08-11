@@ -11,11 +11,7 @@ class Atom {
     return Atom(
       element: json["element"] as String,
       atomName: json["atom_name"] as String,
-      position: Vector3(
-        (json["x"] as num).toDouble(),
-        (json["y"] as num).toDouble(),
-        (json["z"] as num).toDouble(),
-      ),
+      position: Vector3((json["x"] as num).toDouble(), (json["y"] as num).toDouble(), (json["z"] as num).toDouble()),
     );
   }
 }

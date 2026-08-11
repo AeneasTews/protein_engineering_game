@@ -39,10 +39,7 @@ class _MutationBar extends StatelessWidget {
           return Container(
             height: SequenceGridLayout.mutationBarHeight,
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              "No staged mutations",
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            child: Text("No staged mutations", style: Theme.of(context).textTheme.titleMedium),
           );
         }
 
@@ -54,13 +51,11 @@ class _MutationBar extends StatelessWidget {
             itemCount: mutations.length,
             itemBuilder: (context, index) {
               final mutation = mutations[index];
-              final label =
-                  "${state.protein.wildtypeSequence[mutation.$1 - 1]}${mutation.$1}${mutation.$2}";
+              final label = "${state.protein.wildtypeSequence[mutation.$1 - 1]}${mutation.$1}${mutation.$2}";
               return _MutationTile(
                 label: label,
-                onRemove: () => context.read<ExperimentBloc>().add(
-                  MutationChange(position: mutation.$1, aminoAcid: mutation.$2),
-                ),
+                onRemove: () =>
+                    context.read<ExperimentBloc>().add(MutationChange(position: mutation.$1, aminoAcid: mutation.$2)),
               );
             },
           ),
@@ -87,10 +82,7 @@ class _MutationTile extends StatelessWidget {
         minimumSize: Size.zero,
         backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Text(label), const Icon(Icons.close)],
-      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label), const Icon(Icons.close)]),
     );
   }
 }
@@ -121,9 +113,7 @@ class _SequenceEditor extends StatelessWidget {
               itemBuilder: (context, index) {
                 final position = index + 1;
                 final wildtypeAa = protein.wildtypeSequence[index];
-                final isMutated = state.currentMutations.any(
-                  (m) => m.$1 == position,
-                );
+                final isMutated = state.currentMutations.any((m) => m.$1 == position);
 
                 return _ResidueTile(
                   position: position,
@@ -146,12 +136,7 @@ class _ResidueTile extends StatelessWidget {
   final bool isMutated;
   final VoidCallback? onTap;
 
-  const _ResidueTile({
-    required this.position,
-    required this.wildtypeAa,
-    required this.isMutated,
-    this.onTap,
-  });
+  const _ResidueTile({required this.position, required this.wildtypeAa, required this.isMutated, this.onTap});
 
   void _showAminoAcidPicker(BuildContext context) {
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -162,19 +147,11 @@ class _ResidueTile extends StatelessWidget {
 
     showMenu<void>(
       context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height,
-        offset.dx + PickerMenuLayout.menuWidth,
-        0,
-      ),
+      position: RelativeRect.fromLTRB(offset.dx, offset.dy + size.height, offset.dx + PickerMenuLayout.menuWidth, 0),
       items: [
         PopupMenuItem(
           enabled: false,
-          child: Text(
-            "Position: $position  |  Wildtype: $wildtypeAa",
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          child: Text("Position: $position  |  Wildtype: $wildtypeAa", style: Theme.of(context).textTheme.titleLarge),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
@@ -193,24 +170,17 @@ class _ResidueTile extends StatelessWidget {
                 final aminoAcid = AminoAcids.all[index];
                 return ElevatedButton(
                   onPressed: () {
-                    experimentBloc.add(
-                      MutationChange(position: position, aminoAcid: aminoAcid),
-                    );
+                    experimentBloc.add(MutationChange(position: position, aminoAcid: aminoAcid));
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        aminoAcid,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text(aminoAcid, style: Theme.of(context).textTheme.titleLarge),
                       if (aminoAcid == wildtypeAa)
                         Text(
                           "WT",
@@ -242,9 +212,7 @@ class _ResidueTile extends StatelessWidget {
             ? Theme.of(context).colorScheme.primaryContainer
             : Theme.of(context).colorScheme.onInverseSurface,
         padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -252,25 +220,13 @@ class _ResidueTile extends StatelessWidget {
           BlocBuilder<ExperimentBloc, ExperimentState>(
             builder: (context, state) {
               if (state is! ExperimentActive || !isMutated) {
-                return Text(
-                  wildtypeAa,
-                  style: Theme.of(context).textTheme.titleLarge,
-                );
+                return Text(wildtypeAa, style: Theme.of(context).textTheme.titleLarge);
               }
-              final mutation = state.currentMutations.firstWhere(
-                (m) => m.$1 == position,
-              );
-              return Text(
-                mutation.$2,
-                style: Theme.of(context).textTheme.titleLarge,
-              );
+              final mutation = state.currentMutations.firstWhere((m) => m.$1 == position);
+              return Text(mutation.$2, style: Theme.of(context).textTheme.titleLarge);
             },
           ),
-          Text(
-            position.toString(),
-            style: Theme.of(context).textTheme.labelMedium,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(position.toString(), style: Theme.of(context).textTheme.labelMedium, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
