@@ -5,15 +5,14 @@ import "package:flutter/foundation.dart";
 import "package:flutter_scene/scene.dart";
 import "package:vector_math/vector_math.dart";
 
-const double _minPitch = -math.pi / 2 + 0.05;
-const double _maxPitch = math.pi / 2 - 0.05;
+import "../../constants.dart";
 
 class OrbitCameraController extends ChangeNotifier {
   OrbitCameraController({
     required Vector3 target,
     required double distance,
-    double yaw = 0.4,
-    double pitch = 0.35,
+    double yaw = CameraLayout.defaultYaw,
+    double pitch = CameraLayout.defaultPitch,
   }) : _target = target,
        _distance = distance,
        _yaw = yaw,
@@ -29,15 +28,18 @@ class OrbitCameraController extends ChangeNotifier {
   final Vector3 _initialTarget;
   final double _initialDistance;
 
-  double minDistance = 0.5;
-  double maxDistance = 10000;
+  double minDistance = CameraLayout.defaultMinDistance;
+  double maxDistance = CameraLayout.defaultMaxDistance;
 
   Vector3 get target => _target;
   double get distance => _distance;
 
-  void orbit(Offset delta, {double sensitivity = 0.01}) {
+  void orbit(Offset delta, {double sensitivity = CameraLayout.orbitSensitivity}) {
     _yaw -= delta.dx * sensitivity;
-    _pitch = (_pitch + delta.dy * sensitivity).clamp(_minPitch, _maxPitch);
+    _pitch = (_pitch + delta.dy * sensitivity).clamp(
+      CameraLayout.minPitch,
+      CameraLayout.maxPitch,
+    );
     notifyListeners();
   }
 
@@ -55,8 +57,8 @@ class OrbitCameraController extends ChangeNotifier {
   void reset() {
     _target = _initialTarget.clone();
     _distance = _initialDistance;
-    _yaw = 0.4;
-    _pitch = 0.35;
+    _yaw = CameraLayout.defaultYaw;
+    _pitch = CameraLayout.defaultPitch;
     notifyListeners();
   }
 
@@ -72,7 +74,10 @@ class OrbitCameraController extends ChangeNotifier {
   PerspectiveCamera buildCamera() => PerspectiveCamera(
     position: _target + _eyeOffset,
     target: _target,
-    fovNear: math.max(0.05, _distance * 0.01),
-    fovFar: _distance * 20 + 100,
+    fovNear: math.max(
+      CameraLayout.fovNearMinimum,
+      _distance * CameraLayout.fovNearDistanceFactor,
+    ),
+    fovFar: _distance * CameraLayout.fovFarDistanceFactor + CameraLayout.fovFarBase,
   );
 }

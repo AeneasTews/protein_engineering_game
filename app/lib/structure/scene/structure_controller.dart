@@ -3,14 +3,10 @@ import "package:flutter/services.dart" show KeyEvent;
 import "package:flutter_scene/scene.dart";
 import "package:vector_math/vector_math.dart";
 
+import "../../constants.dart";
 import "../models/molecular_structure.dart";
 import "cartoon_builder.dart";
 import "orbit_camera.dart";
-
-const double _selectionMarkerRadius = 1.3;
-const double _mutationMarkerRadius = 0.9;
-final Vector4 _selectionColor = Vector4(0.1, 0.95, 0.95, 1.0);
-final Vector4 _mutationColor = Vector4(1.0, 0.55, 0.0, 1.0);
 
 class StructureController extends ChangeNotifier {
   StructureController({
@@ -61,8 +57,8 @@ class StructureController extends ChangeNotifier {
       if (residue == null) continue;
       final Node node = _buildMarkerNode(
         position: residue.alphaCarbon.position,
-        radius: _mutationMarkerRadius,
-        color: _mutationColor,
+        radius: MarkerLayout.mutationRadius,
+        color: MarkerColors.mutation,
       );
       scene.add(node);
       _mutationMarkerNodes[position] = node;
@@ -92,8 +88,8 @@ class StructureController extends ChangeNotifier {
 
     final Node node = _buildMarkerNode(
       position: residue.alphaCarbon.position,
-      radius: _selectionMarkerRadius,
-      color: _selectionColor,
+      radius: MarkerLayout.selectionRadius,
+      color: MarkerColors.selection,
     );
     scene.add(node);
     _selectionMarkerNode = node;

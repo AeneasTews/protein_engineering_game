@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
+import "../constants.dart";
 import "../structure/scene/structure_controller.dart";
 import "../structure/scene/structure_viewer_widget.dart";
 
@@ -60,8 +61,8 @@ class StructurePanel extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: 12,
-          bottom: 12,
+          right: StructureViewerLayout.recenterButtonMargin,
+          bottom: StructureViewerLayout.recenterButtonMargin,
           child: FloatingActionButton.small(
             onPressed: controller.resetCamera,
             tooltip: "Recenter camera",

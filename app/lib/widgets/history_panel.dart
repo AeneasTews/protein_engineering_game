@@ -2,6 +2,7 @@ import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
+import "../constants.dart";
 import "../data/models/experiment_entry.dart";
 
 class HistoryPanel extends StatelessWidget {
@@ -76,7 +77,9 @@ class _StatBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          score == null ? "-" : score!.toStringAsFixed(2),
+          score == null
+              ? "-"
+              : score!.toStringAsFixed(GameRules.scoreDecimalPlaces),
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(color: _scoreColor(score, context)),
@@ -88,8 +91,7 @@ class _StatBlock extends StatelessWidget {
 }
 
 Color? _scoreColor(double? score, BuildContext context) {
-  const colorDelta =
-      0.1; // constant which determines outside what range scores should be considered different from wildtype (+- 0.1 is still pretty much wildtype
+  const colorDelta = GameRules.wildtypeEquivalenceBand;
 
   if (score == null) {
     return null;
@@ -121,9 +123,9 @@ class _SubmitButton extends StatelessWidget {
                 ? Theme.of(context).colorScheme.primaryContainer
                 : Theme.of(context).colorScheme.secondaryContainer,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
             ),
-            minimumSize: const Size(double.infinity, 45),
+            minimumSize: UiLayout.fullWidthButtonSize,
           ),
           child: Text(
             isSubmittable
@@ -168,7 +170,9 @@ class _HistoryEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.onInverseSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,7 +198,9 @@ class _HistoryEntry extends StatelessWidget {
                       Padding(
                         padding: EdgeInsets.only(left: 4),
                         child: Text(
-                          experimentEntry.score.toStringAsFixed(2),
+                          experimentEntry.score.toStringAsFixed(
+                            GameRules.scoreDecimalPlaces,
+                          ),
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 color: _scoreColor(
@@ -248,21 +254,23 @@ class _HistoryGraph extends StatelessWidget {
             .reduce((a, b) => a < b ? a : b);
 
         return AspectRatio(
-          aspectRatio: 1.75,
+          aspectRatio: UiLayout.historyChartAspectRatio,
           child: LineChart(
             LineChartData(
               minX: 0,
               maxX: history.length < 2
                   ? 1.0
                   : history.last.turnCount.toDouble(),
-              minY: minScore - 1,
-              maxY: maxScore + 1,
+              minY: minScore - UiLayout.chartScorePadding,
+              maxY: maxScore + UiLayout.chartScorePadding,
               gridData: FlGridData(
                 show: true,
                 drawHorizontalLine: true,
                 drawVerticalLine: true,
-                horizontalInterval: 1.0,
-                verticalInterval: history.length < 2 ? 1.0 : null,
+                horizontalInterval: UiLayout.chartGridInterval,
+                verticalInterval: history.length < 2
+                    ? UiLayout.chartGridInterval
+                    : null,
               ),
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(
@@ -274,15 +282,15 @@ class _HistoryGraph extends StatelessWidget {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 30,
-                    interval: 1.0,
+                    reservedSize: UiLayout.chartAxisReservedSize,
+                    interval: UiLayout.chartGridInterval,
                   ),
                 ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: 1.0,
-                    reservedSize: 30,
+                    interval: UiLayout.chartGridInterval,
+                    reservedSize: UiLayout.chartAxisReservedSize,
                   ),
                 ),
               ),
@@ -302,7 +310,9 @@ class _HistoryGraph extends StatelessWidget {
                       final FlSpot spot =
                           touchedBarSpot.bar.spots[touchedBarSpot.spotIndex];
                       final int turn = spot.x.toInt();
-                      final String score = spot.y.toStringAsFixed(3);
+                      final String score = spot.y.toStringAsFixed(
+                        GameRules.scoreDecimalPlacesDetailed,
+                      );
                       return LineTooltipItem(
                         "Turn $turn\n",
                         TextStyle(

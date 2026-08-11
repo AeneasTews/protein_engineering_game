@@ -4,6 +4,7 @@ import "package:url_launcher/url_launcher.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
+import "../constants.dart";
 import "../data/models/highscore.dart";
 import "../data/models/protein.dart";
 import "../data/repositories/session_repository.dart";
@@ -62,7 +63,7 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
               child: Padding(padding: EdgeInsets.all(8), child: _ProteinGrid()),
             ),
             SizedBox(
-              width: 400,
+              width: ProteinLibraryLayout.sidebarWidth,
               child: Column(
                 children: [
                   Padding(
@@ -78,7 +79,7 @@ class _ProteinLibraryScreenState extends State<ProteinLibraryScreen> {
                       alignment: Alignment.bottomRight,
                       child: TextButton(
                         onPressed: () => launchUrl(
-                          Uri.parse("https://biocentral.cloud/"),
+                          Uri.parse(ExternalLinks.impressum),
                           webOnlyWindowName: "_blank",
                         ),
                         child: const Text(
@@ -127,10 +128,10 @@ class _ProteinGrid extends StatelessWidget {
         if (state is ProteinLibraryLoaded) {
           return GridView.builder(
             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisSpacing: 5,
-              crossAxisSpacing: 5,
-              mainAxisExtent: 130,
+              maxCrossAxisExtent: ProteinLibraryLayout.cardMaxExtent,
+              mainAxisSpacing: ProteinLibraryLayout.cardSpacing,
+              crossAxisSpacing: ProteinLibraryLayout.cardSpacing,
+              mainAxisExtent: ProteinLibraryLayout.cardHeight,
             ),
             itemCount: state.proteins.length,
             itemBuilder: (context, index) {
@@ -167,7 +168,9 @@ class _ProteinCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
-      elevation: isSelected ? 4 : 1,
+      elevation: isSelected
+          ? ProteinLibraryLayout.selectedCardElevation
+          : ProteinLibraryLayout.unselectedCardElevation,
       clipBehavior: Clip.antiAlias,
       shadowColor: isSelected ? Theme.of(context).colorScheme.primary : null,
       child: InkWell(
@@ -204,7 +207,7 @@ class _ProteinCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 highscore != null
-                    ? "🏆 ${highscore!.username} ${highscore!.score.toStringAsFixed(2)}"
+                    ? "🏆 ${highscore!.username} ${highscore!.score.toStringAsFixed(GameRules.scoreDecimalPlaces)}"
                     : "🏆 —",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   overflow: TextOverflow.ellipsis,
@@ -237,7 +240,7 @@ class _SessionPanel extends StatelessWidget {
 
             return Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),
@@ -283,9 +286,11 @@ class _SessionPanel extends StatelessWidget {
                       },
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadiusGeometry.circular(8),
+                          borderRadius: BorderRadiusGeometry.circular(
+                            UiLayout.cardBorderRadius,
+                          ),
                         ),
-                        minimumSize: Size(double.infinity, 45),
+                        minimumSize: UiLayout.fullWidthButtonSize,
                       ),
                       child: isLoading
                           ? const CircularProgressIndicator()

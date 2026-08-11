@@ -2,6 +2,7 @@ import "package:flutter/gestures.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_scene/scene.dart";
 
+import "../../constants.dart";
 import "../models/molecular_structure.dart";
 import "orbit_camera.dart";
 import "structure_controller.dart";
@@ -49,8 +50,11 @@ class _StructureViewerWidgetState extends State<StructureViewerWidget> {
           child: Listener(
             onPointerSignal: (event) {
               if (event is PointerScrollEvent) {
-                final double factor = 1 + event.scrollDelta.dy * 0.001;
-                cameraController.zoomBy(factor.clamp(0.8, 1.2));
+                final double factor =
+                    1 + event.scrollDelta.dy * CameraLayout.scrollZoomSensitivity;
+                cameraController.zoomBy(
+                  factor.clamp(CameraLayout.zoomFactorMin, CameraLayout.zoomFactorMax),
+                );
               }
             },
             child: GestureDetector(

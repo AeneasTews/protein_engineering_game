@@ -1,30 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
+import "../constants.dart";
 import "../data/models/protein.dart";
-
-const aminoAcids = [
-  "A",
-  "R",
-  "N",
-  "D",
-  "C",
-  "E",
-  "Q",
-  "G",
-  "H",
-  "I",
-  "L",
-  "K",
-  "M",
-  "F",
-  "P",
-  "S",
-  "T",
-  "W",
-  "Y",
-  "V",
-];
 
 class SequencePanel extends StatelessWidget {
   final Protein protein;
@@ -59,7 +37,7 @@ class _MutationBar extends StatelessWidget {
         final mutations = state.currentMutations;
         if (mutations.isEmpty) {
           return Container(
-            height: 40,
+            height: SequenceGridLayout.mutationBarHeight,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               "No staged mutations",
@@ -69,7 +47,7 @@ class _MutationBar extends StatelessWidget {
         }
 
         return SizedBox(
-          height: 40,
+          height: SequenceGridLayout.mutationBarHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
@@ -134,10 +112,10 @@ class _SequenceEditor extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 50,
-                mainAxisSpacing: 5,
-                crossAxisSpacing: 5,
-                mainAxisExtent: 50,
+                maxCrossAxisExtent: SequenceGridLayout.tileExtent,
+                mainAxisSpacing: SequenceGridLayout.gridSpacing,
+                crossAxisSpacing: SequenceGridLayout.gridSpacing,
+                mainAxisExtent: SequenceGridLayout.tileExtent,
               ),
               itemCount: protein.wildtypeSequence.length,
               itemBuilder: (context, index) {
@@ -187,7 +165,7 @@ class _ResidueTile extends StatelessWidget {
       position: RelativeRect.fromLTRB(
         offset.dx,
         offset.dy + size.height,
-        offset.dx + 400,
+        offset.dx + PickerMenuLayout.menuWidth,
         0,
       ),
       items: [
@@ -202,17 +180,17 @@ class _ResidueTile extends StatelessWidget {
         PopupMenuItem(
           enabled: false,
           child: SizedBox(
-            width: 400,
-            height: 220,
+            width: PickerMenuLayout.menuWidth,
+            height: PickerMenuLayout.menuHeight,
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                mainAxisSpacing: 5,
-                crossAxisSpacing: 5,
+                crossAxisCount: PickerMenuLayout.gridCrossAxisCount,
+                mainAxisSpacing: PickerMenuLayout.gridSpacing,
+                crossAxisSpacing: PickerMenuLayout.gridSpacing,
               ),
-              itemCount: 20,
+              itemCount: AminoAcids.all.length,
               itemBuilder: (context, index) {
-                final aminoAcid = aminoAcids[index];
+                final aminoAcid = AminoAcids.all[index];
                 return ElevatedButton(
                   onPressed: () {
                     experimentBloc.add(
@@ -223,7 +201,7 @@ class _ResidueTile extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
                     ),
                   ),
                   child: Column(
@@ -236,8 +214,10 @@ class _ResidueTile extends StatelessWidget {
                       if (aminoAcid == wildtypeAa)
                         Text(
                           "WT",
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(fontSize: 8, height: 0.8),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontSize: PickerMenuLayout.wildtypeLabelFontSize,
+                            height: PickerMenuLayout.wildtypeLabelLineHeight,
+                          ),
                         ),
                     ],
                   ),
@@ -262,7 +242,9 @@ class _ResidueTile extends StatelessWidget {
             ? Theme.of(context).colorScheme.primaryContainer
             : Theme.of(context).colorScheme.onInverseSurface,
         padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
