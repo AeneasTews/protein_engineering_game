@@ -49,13 +49,26 @@ class StructurePanel extends StatelessWidget {
     if (controller == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return StructureViewerWidget(
-      controller: controller,
-      onResidueTap: (residue, globalPosition) => onResidueClick?.call(
-        residue.position,
-        globalPosition.dx,
-        globalPosition.dy,
-      ),
+    return Stack(
+      children: [
+        StructureViewerWidget(
+          controller: controller,
+          onResidueTap: (residue, globalPosition) => onResidueClick?.call(
+            residue.position,
+            globalPosition.dx,
+            globalPosition.dy,
+          ),
+        ),
+        Positioned(
+          right: 12,
+          bottom: 12,
+          child: FloatingActionButton.small(
+            onPressed: controller.resetCamera,
+            tooltip: "Recenter camera",
+            child: const Icon(Icons.center_focus_strong),
+          ),
+        ),
+      ],
     );
   }
 }

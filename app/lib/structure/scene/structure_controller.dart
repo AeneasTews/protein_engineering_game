@@ -49,6 +49,8 @@ class StructureController extends ChangeNotifier {
   void clearSelection() => _setSelected(null);
 
   void updateMutationMarkers(Iterable<int> positions) {
+    clearSelection();
+
     for (final node in _mutationMarkerNodes.values) {
       scene.remove(node);
     }
