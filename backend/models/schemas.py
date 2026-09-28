@@ -37,7 +37,8 @@ class EvaluationResponse(BaseModel):
         examples=["A72C", "T53A:G8A"],
     )
     score: float = Field(..., description="Score of the mutant")
-    turn_count: int = Field(..., description="Current turn count [1 - 20]")
+    turn_count: int = Field(..., description="Current turn count [1 - max_turns]")
+    max_turns: int = Field(..., description="Number of turns this session has in total")
     history: list[TrajectoryStepBase] = Field(..., description="History of the session")
 
 
@@ -72,6 +73,26 @@ class HighScoresResponse(BaseModel):
     highscores: dict[str, Highscore] = Field(
         ..., description="Dictionary of pdb ids: (username, score)"
     )
+
+
+class PlayerCreate(BaseModel):
+    nickname: str = Field(..., description="Nickname shown to other players")
+
+
+class PlayerResponse(BaseModel):
+    player_id: str
+    nickname: str
+    token: str = Field(
+        ...,
+        description="Secret used to open the /ws connection and to evaluate in match sessions (X-Player-Token)",
+    )
+
+
+class LeaderboardEntrySchema(BaseModel):
+    nickname: str
+    wins: int
+    losses: int
+    draws: int
 
 
 class AtomSchema(BaseModel):
