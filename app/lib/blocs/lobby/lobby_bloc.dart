@@ -8,11 +8,8 @@ part "lobby_state.dart";
 
 class LobbyBloc extends Bloc<LobbyEvent, LobbyState> {
   final MatchRepository _matchRepository;
-  final PlayerIdentity _identity;
-
-  LobbyBloc({required MatchRepository matchRepository, required PlayerIdentity identity})
+  LobbyBloc({required MatchRepository matchRepository})
     : _matchRepository = matchRepository,
-      _identity = identity,
       super(LobbyState(connected: matchRepository.isConnected)) {
     on<LobbyStarted>(_onStarted);
     on<LobbyLeaderboardRequested>(_onLeaderboardRequested);
@@ -43,7 +40,9 @@ class LobbyBloc extends Bloc<LobbyEvent, LobbyState> {
       case ConnectionChanged(:final connected):
         return state.copyWith(connected: connected);
       case LobbyUpdated(:final players):
-        return state.copyWith(players: players.where((p) => p.playerId != _identity.playerId).toList());
+        return state.copyWith(
+          players: players.where((p) => p.playerId != _matchRepository.identity?.playerId).toList(),
+        );
       case ChallengeReceived(:final challenge):
         if (state.incoming.any((c) => c.challengeId == challenge.challengeId)) return state;
         return state.copyWith(incoming: [...state.incoming, challenge]);

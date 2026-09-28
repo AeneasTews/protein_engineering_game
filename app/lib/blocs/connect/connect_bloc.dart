@@ -14,10 +14,12 @@ part "connect_state.dart";
 /// A live, registered connection to a multiplayer server.
 class ServerConnection {
   final String baseUrl;
-  final PlayerIdentity identity;
   final MatchRepository matchRepository;
 
-  const ServerConnection({required this.baseUrl, required this.identity, required this.matchRepository});
+  const ServerConnection({required this.baseUrl, required this.matchRepository});
+
+  // Read through the repository: it re-registers (new id and token) if the server restarts.
+  PlayerIdentity get identity => matchRepository.identity!;
 }
 
 class ConnectBloc extends Bloc<ConnectEvent, ConnectState> {
@@ -69,7 +71,7 @@ class ConnectBloc extends Bloc<ConnectEvent, ConnectState> {
     emit(state.copyWith(status: ConnectStatus.connecting));
     final repository = MatchRepository(baseUrl: baseUrl);
     try {
-      final identity = await repository.register(nickname).timeout(Network.connectTimeout);
+      await repository.register(nickname).timeout(Network.connectTimeout);
       await repository.connect();
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -81,7 +83,7 @@ class ConnectBloc extends Bloc<ConnectEvent, ConnectState> {
       emit(
         state.copyWith(
           status: ConnectStatus.connected,
-          connection: ServerConnection(baseUrl: baseUrl, identity: identity, matchRepository: repository),
+          connection: ServerConnection(baseUrl: baseUrl, matchRepository: repository),
         ),
       );
     } on ApiException catch (e) {

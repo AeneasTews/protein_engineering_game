@@ -36,6 +36,49 @@ Future<S> _waitFor<S>(Stream<S> stream, S current, bool Function(S) predicate) a
   return stream.firstWhere(predicate).timeout(const Duration(seconds: 10));
 }
 
+/// Plays every turn of [match] through a MatchBloc and ExperimentBloc, as the game screen would.
+Future<(MatchBloc, ExperimentBloc)> _playMatch(String server, MatchRepository repo, MatchInfo match) async {
+  final matchBloc = MatchBloc(match: match, matchRepository: repo);
+  final experiment = ExperimentBloc(sessionRepository: SessionRepository(baseUrl: server))
+    ..add(
+      ExperimentStart(
+        sessionId: match.sessionId,
+        protein: match.protein,
+        maxTurns: match.maxTurns,
+        // Read at use time, like the app does: it changes if the server restarted.
+        playerToken: repo.identity!.token,
+        lockReason: "Get ready…",
+      ),
+    );
+  await _waitFor(matchBloc.stream, matchBloc.state, (s) => s.phase == MatchPhase.running);
+  experiment.add(const ExperimentLockChanged(null));
+
+  final wildtype = match.protein.wildtypeSequence;
+  for (var position = 1; position <= match.maxTurns; position++) {
+    final aminoAcid = wildtype[position - 1] == "A" ? "G" : "A";
+    experiment.add(MutationChange(position: position, aminoAcid: aminoAcid));
+    experiment.add(const Evaluate());
+    await _waitFor(
+      experiment.stream,
+      experiment.state,
+      (s) => s is ExperimentActive && !s.isEvaluating && s.turnCount == position,
+    );
+  }
+  return (matchBloc, experiment);
+}
+
+/// A challenges B through the lobbies; returns both players' MatchInfo.
+Future<(MatchInfo, MatchInfo)> _startMatch(LobbyBloc lobbyA, LobbyBloc lobbyB, MatchRepository repoB) async {
+  final idB = repoB.identity!;
+  await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.players.any((p) => p.playerId == idB.playerId));
+  lobbyA.add(LobbyChallengeRequested(playerId: idB.playerId));
+  final withChallenge = await _waitFor(lobbyB.stream, lobbyB.state, (s) => s.incoming.isNotEmpty);
+  lobbyB.add(LobbyChallengeAnswered(challengeId: withChallenge.incoming.single.challengeId, accept: true));
+  final matchA = (await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.pendingMatch != null)).pendingMatch!;
+  final matchB = (await _waitFor(lobbyB.stream, lobbyB.state, (s) => s.pendingMatch != null)).pendingMatch!;
+  return (matchA, matchB);
+}
+
 void main() {
   group("normalizeServerAddress", () {
     test("adds scheme and default port", () {
@@ -75,62 +118,25 @@ void main() {
       final stamp = DateTime.now().millisecondsSinceEpoch % 100000;
       final repoA = MatchRepository(baseUrl: server!);
       final repoB = MatchRepository(baseUrl: server);
-      final idA = await repoA.register("alice$stamp");
-      final idB = await repoB.register("bob$stamp");
+      await repoA.register("alice$stamp");
+      await repoB.register("bob$stamp");
       await repoA.connect();
       await repoB.connect();
 
-      final lobbyA = LobbyBloc(matchRepository: repoA, identity: idA)..add(const LobbyStarted());
-      final lobbyB = LobbyBloc(matchRepository: repoB, identity: idB)..add(const LobbyStarted());
+      // Created after connecting: the server's greeting must not be lost before they subscribe.
+      final lobbyA = LobbyBloc(matchRepository: repoA)..add(const LobbyStarted());
+      final lobbyB = LobbyBloc(matchRepository: repoB)..add(const LobbyStarted());
 
-      // The greeting sent before anyone subscribed must not be lost.
-      await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.players.any((p) => p.playerId == idB.playerId));
-
-      lobbyA.add(LobbyChallengeRequested(playerId: idB.playerId));
-      final withChallenge = await _waitFor(lobbyB.stream, lobbyB.state, (s) => s.incoming.isNotEmpty);
-      lobbyB.add(LobbyChallengeAnswered(challengeId: withChallenge.incoming.single.challengeId, accept: true));
-
-      final matchA = (await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.pendingMatch != null)).pendingMatch!;
-      final matchB = (await _waitFor(lobbyB.stream, lobbyB.state, (s) => s.pendingMatch != null)).pendingMatch!;
+      final (matchA, matchB) = await _startMatch(lobbyA, lobbyB, repoB);
       expect(matchA.matchId, matchB.matchId);
       expect(matchA.protein.pdbId, matchB.protein.pdbId);
 
-      Future<(MatchBloc, ExperimentBloc)> play(MatchRepository repo, PlayerIdentity id, MatchInfo match) async {
-        final matchBloc = MatchBloc(match: match, matchRepository: repo);
-        final experiment = ExperimentBloc(sessionRepository: SessionRepository(baseUrl: server))
-          ..add(
-            ExperimentStart(
-              sessionId: match.sessionId,
-              protein: match.protein,
-              maxTurns: match.maxTurns,
-              playerToken: id.token,
-              lockReason: "Get ready…",
-            ),
-          );
-        await _waitFor(matchBloc.stream, matchBloc.state, (s) => s.phase == MatchPhase.running);
-        experiment.add(const ExperimentLockChanged(null));
-
-        final wildtype = match.protein.wildtypeSequence;
-        for (var position = 1; position <= match.maxTurns; position++) {
-          final aminoAcid = wildtype[position - 1] == "A" ? "G" : "A";
-          experiment.add(MutationChange(position: position, aminoAcid: aminoAcid));
-          experiment.add(const Evaluate());
-          await _waitFor(
-            experiment.stream,
-            experiment.state,
-            (s) => s is ExperimentActive && !s.isEvaluating && s.turnCount == position,
-          );
-        }
-        return (matchBloc, experiment);
-      }
-
-      final results = await Future.wait([play(repoA, idA, matchA), play(repoB, idB, matchB)]);
+      final results = await Future.wait([_playMatch(server, repoA, matchA), _playMatch(server, repoB, matchB)]);
       final (matchBlocA, experimentA) = results[0];
-      final (matchBlocB, _) = results[1];
+      final (matchBlocB, experimentB) = results[1];
 
       // Out of turns locks the experiment instead of finishing it.
-      final finalExperimentA = experimentA.state as ExperimentActive;
-      expect(finalExperimentA.turnCount, matchA.maxTurns);
+      expect((experimentA.state as ExperimentActive).turnCount, matchA.maxTurns);
 
       final endA = await _waitFor(matchBlocA.stream, matchBlocA.state, (s) => s.phase == MatchPhase.finished);
       final endB = await _waitFor(matchBlocB.stream, matchBlocB.state, (s) => s.phase == MatchPhase.finished);
@@ -144,11 +150,95 @@ void main() {
       final lobbyAfter = await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.activeMatchId == null);
       expect(lobbyAfter.activeMatchId, isNull);
 
-      for (final bloc in [lobbyA, lobbyB, matchBlocA, matchBlocB, experimentA, results[1].$2]) {
+      for (final bloc in [lobbyA, lobbyB, matchBlocA, matchBlocB, experimentA, experimentB]) {
         await bloc.close();
       }
       await repoA.dispose();
       await repoB.dispose();
+    },
+  );
+
+  // Starts, kills and restarts its own backend, so it needs the backend directory (with its .venv).
+  final backendDir = Platform.environment["MUTATEIT_TEST_BACKEND_DIR"];
+  test(
+    "clients re-register after the server restarts and can play again",
+    skip: backendDir == null ? "set MUTATEIT_TEST_BACKEND_DIR to the backend directory" : false,
+    timeout: const Timeout(Duration(minutes: 2)),
+    () async {
+      const port = 8127;
+      const baseUrl = "http://localhost:$port";
+      final dbPath = "${Directory.systemTemp.createTempSync("mutateit-restart-").path}/test.sqlite3";
+
+      Future<Process> startServer() async {
+        final process = await Process.start(
+          "$backendDir/.venv/bin/uvicorn",
+          ["main:app", "--port", "$port", "--no-access-log"],
+          workingDirectory: backendDir,
+          environment: {
+            "DB_PATH": dbPath,
+            "MUTATEIT_DISABLE_BEACON": "1",
+            "MUTATEIT_MATCH_TURNS": "1",
+            "MUTATEIT_COUNTDOWN_S": "0.2",
+          },
+        );
+        final client = HttpClient();
+        for (var attempt = 0; attempt < 80; attempt++) {
+          try {
+            final response = await (await client.getUrl(Uri.parse("$baseUrl/proteins"))).close();
+            await response.drain<void>();
+            if (response.statusCode == 200) break;
+          } catch (_) {
+            await Future<void>.delayed(const Duration(milliseconds: 250));
+          }
+        }
+        client.close();
+        return process;
+      }
+
+      var serverProcess = await startServer();
+      try {
+        final repoA = MatchRepository(baseUrl: baseUrl);
+        final repoB = MatchRepository(baseUrl: baseUrl);
+        await repoA.register("ann");
+        await repoB.register("ben");
+        await repoA.connect();
+        await repoB.connect();
+        final lobbyA = LobbyBloc(matchRepository: repoA)..add(const LobbyStarted());
+        final lobbyB = LobbyBloc(matchRepository: repoB)..add(const LobbyStarted());
+        await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.players.isNotEmpty);
+        final oldToken = repoA.identity!.token;
+
+        serverProcess.kill();
+        await serverProcess.exitCode;
+        await _waitFor(lobbyA.stream, lobbyA.state, (s) => !s.connected);
+
+        serverProcess = await startServer();
+        await _waitFor(lobbyA.stream, lobbyA.state, (s) => s.connected);
+        await _waitFor(lobbyB.stream, lobbyB.state, (s) => s.connected);
+        expect(repoA.identity!.token, isNot(oldToken));
+
+        // The lobby must filter out the *new* own id, and a match must be playable with the new token.
+        final lobby = await _waitFor(
+          lobbyA.stream,
+          lobbyA.state,
+          (s) => s.players.any((p) => p.playerId == repoB.identity!.playerId),
+        );
+        expect(lobby.players.any((p) => p.playerId == repoA.identity!.playerId), isFalse);
+
+        final (matchA, matchB) = await _startMatch(lobbyA, lobbyB, repoB);
+        final results = await Future.wait([_playMatch(baseUrl, repoA, matchA), _playMatch(baseUrl, repoB, matchB)]);
+        final endA = await _waitFor(results[0].$1.stream, results[0].$1.state, (s) => s.phase == MatchPhase.finished);
+        expect(endA.result!.you.history.length, 1);
+
+        for (final bloc in [lobbyA, lobbyB, results[0].$1, results[0].$2, results[1].$1, results[1].$2]) {
+          await bloc.close();
+        }
+        await repoA.dispose();
+        await repoB.dispose();
+      } finally {
+        serverProcess.kill();
+        await serverProcess.exitCode;
+      }
     },
   );
 }

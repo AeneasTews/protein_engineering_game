@@ -43,7 +43,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   maxTurns: match.maxTurns,
                   playerToken: widget.connection.identity.token,
                   initialHistory: match.ownHistory,
-                  lockReason: context.read<MatchBloc>().state.phase == MatchPhase.countdown ? MatchText.getReady : null,
+                  lockReason: _initialLockReason(match, context.read<MatchBloc>().state.phase),
                 ),
               ),
             child: GameScreen(protein: match.protein, isMatch: true),
@@ -52,6 +52,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
       ),
     );
     context.read<LobbyBloc>().add(const LobbyMatchOpened());
+  }
+
+  // A resumed match may already be out of turns; a fresh one starts with the countdown.
+  String? _initialLockReason(MatchInfo match, MatchPhase phase) {
+    final turnsUsed = match.ownHistory.isEmpty ? 0 : match.ownHistory.last.turnCount;
+    if (turnsUsed >= match.maxTurns) return MatchText.outOfTurns;
+    return phase == MatchPhase.countdown ? MatchText.getReady : null;
   }
 
   void _openPractice(BuildContext context) {
