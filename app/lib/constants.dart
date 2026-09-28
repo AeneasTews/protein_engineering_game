@@ -10,9 +10,10 @@ import "package:vector_math/vector_math.dart";
 class GameRules {
   GameRules._();
 
+  // Practice sessions; match sessions get their turn budget from the server.
   static const int maxTurns = 20;
-  // The bar at which the round counter switches to a warning color.
-  static const int turnWarningThreshold = maxTurns - 2;
+  // The round counter switches to a warning color this many turns before the last.
+  static const int turnWarningMargin = 2;
 
   // A score within +-this of 0 is still considered "essentially wildtype"
   // for coloring purposes.
@@ -22,6 +23,39 @@ class GameRules {
   // Used only in the history chart's hover tooltip, which shows one more
   // digit of precision than the summary displays.
   static const int scoreDecimalPlacesDetailed = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Multiplayer
+// ---------------------------------------------------------------------------
+
+class Network {
+  Network._();
+
+  // Must match game/settings.py and game/discovery.py in the backend.
+  static const int discoveryPort = 47800;
+  static const String discoveryServiceName = "mutateit";
+  static const int defaultServerPort = 8000;
+
+  static const Duration connectTimeout = Duration(seconds: 5);
+  static const Duration reconnectDelay = Duration(seconds: 2);
+}
+
+class MatchRules {
+  MatchRules._();
+
+  // The match clock switches to a warning color below this.
+  static const Duration clockWarning = Duration(seconds: 30);
+  static const Duration clockTick = Duration(milliseconds: 200);
+}
+
+// Why the submit button is locked during a match.
+class MatchText {
+  MatchText._();
+
+  static const String getReady = "Get ready…";
+  static const String outOfTurns = "Out of turns — waiting for opponent";
+  static const String matchOver = "Match over";
 }
 
 class AminoAcids {
@@ -126,6 +160,18 @@ class GameLayout {
   static const double finishDialogWidth = 340.0;
   static const double gameBarHeight = 50.0;
   static const double gameBarHorizontalPadding = 20.0;
+}
+
+class MatchLayout {
+  MatchLayout._();
+
+  static const double countdownFontSize = 160.0;
+  static const double clockFontSize = 28.0;
+  static const double connectionDotSize = 10.0;
+  static const double resultWidth = 720.0;
+  static const double lobbyPanelWidth = 360.0;
+  static const double connectFormWidth = 420.0;
+  static const Duration opponentToastDuration = Duration(seconds: 2);
 }
 
 class StructureViewerLayout {

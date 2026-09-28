@@ -97,7 +97,15 @@ class _SubmitButton extends StatelessWidget {
       builder: (context, state) {
         if (state is! ExperimentActive) return SizedBox.shrink();
 
-        final isSubmittable = state.currentMutations.isNotEmpty;
+        final isSubmittable = state.currentMutations.isNotEmpty && !state.isLocked;
+        final String label;
+        if (state.lockReason != null) {
+          label = state.lockReason!;
+        } else if (isSubmittable) {
+          label = "Submit ${state.currentMutations.length} mutation${state.currentMutations.length > 1 ? "s" : ""}";
+        } else {
+          label = "Add mutations first";
+        }
 
         return FilledButton(
           onPressed: () {
@@ -111,12 +119,7 @@ class _SubmitButton extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
             minimumSize: UiLayout.fullWidthButtonSize,
           ),
-          child: Text(
-            isSubmittable
-                ? "Submit ${state.currentMutations.length} mutation${state.currentMutations.length > 1 ? "s" : ""}"
-                : "Add mutations first",
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
         );
       },
     );

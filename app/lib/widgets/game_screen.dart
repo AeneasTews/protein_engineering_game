@@ -12,14 +12,20 @@ import "../structure/models/molecular_structure.dart";
 import "../structure/scene/cartoon_builder.dart";
 import "../structure/scene/orbit_camera.dart";
 import "../structure/scene/structure_controller.dart";
+import "../blocs/match/match_bloc.dart";
 import "../widgets/history_panel.dart";
+import "match_result_screen.dart";
+import "match_widgets.dart";
 import "../widgets/sequence_panel.dart";
 import "../widgets/structure_panel.dart";
 
 class GameScreen extends StatefulWidget {
   final Protein protein;
+  // In a match a MatchBloc is provided above this screen, and the match (not the turn count)
+  // decides when the game is over.
+  final bool isMatch;
 
-  const GameScreen({super.key, required this.protein});
+  const GameScreen({super.key, required this.protein, this.isMatch = false});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -107,86 +113,140 @@ class _GameScreenState extends State<GameScreen> {
     return (center, radius == 0.0 ? CameraLayout.fallbackBoundingRadius : radius);
   }
 
+  List<BlocListener> _matchListeners() => [
+    BlocListener<MatchBloc, MatchState>(
+      listenWhen: (prev, next) => prev.phase != next.phase,
+      listener: (context, state) async {
+        final experimentBloc = context.read<ExperimentBloc>();
+        switch (state.phase) {
+          case MatchPhase.countdown:
+            experimentBloc.add(const ExperimentLockChanged(MatchText.getReady));
+          case MatchPhase.running:
+            experimentBloc.add(const ExperimentLockChanged(null));
+          case MatchPhase.finished:
+            experimentBloc.add(const ExperimentLockChanged(MatchText.matchOver));
+            final result = state.result;
+            if (result == null) return;
+            await Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => MatchResultScreen(result: result, protein: widget.protein),
+              ),
+            );
+        }
+      },
+    ),
+    BlocListener<MatchBloc, MatchState>(
+      listenWhen: (prev, next) => next.opponentNewBestCount > prev.opponentNewBestCount,
+      listener: (context, state) =>
+          _showToast(context, "${state.opponent.nickname} found a new best: ${formatScore(state.opponent.bestScore)}"),
+    ),
+    BlocListener<MatchBloc, MatchState>(
+      listenWhen: (prev, next) => prev.opponentConnected != next.opponentConnected,
+      listener: (context, state) => _showToast(
+        context,
+        state.opponentConnected
+            ? "${state.opponent.nickname} is back"
+            : "${state.opponent.nickname} disconnected — they forfeit if they don't return",
+      ),
+    ),
+  ];
+
+  void _showToast(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: MatchLayout.opponentToastDuration,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  List<BlocListener> _practiceListeners() => [
+    BlocListener<ExperimentBloc, ExperimentState>(
+      listenWhen: (_, next) => next is ExperimentFinished,
+      listener: (context, state) {
+        if (state is! ExperimentFinished) return;
+        context.read<SessionManagerBloc>().add(SessionManagerFinish(score: state.bestScore));
+      },
+    ),
+    BlocListener<SessionManagerBloc, SessionManagerState>(
+      listenWhen: (_, next) => next is SessionManagerFinished,
+      listener: (context, state) async {
+        if (state is! SessionManagerFinished) return;
+        context.read<ProteinLibraryBloc>().add(HighscoreUpdated(pdbId: state.pdbId, highscore: state.highscore));
+
+        await _showFinishDialog(context, state);
+
+        if (!context.mounted) return;
+        context.read<ExperimentBloc>().add(ExperimentClose());
+        context.read<SessionManagerBloc>().add(SessionManagerClose());
+        Navigator.of(context).pop();
+      },
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
-      listeners: [
-        BlocListener<ExperimentBloc, ExperimentState>(
-          listenWhen: (_, next) => next is ExperimentFinished,
-          listener: (context, state) {
-            if (state is! ExperimentFinished) return;
-            context.read<SessionManagerBloc>().add(SessionManagerFinish(score: state.bestScore));
-          },
-        ),
-        BlocListener<SessionManagerBloc, SessionManagerState>(
-          listenWhen: (_, next) => next is SessionManagerFinished,
-          listener: (context, state) async {
-            if (state is! SessionManagerFinished) return;
-            context.read<ProteinLibraryBloc>().add(HighscoreUpdated(pdbId: state.pdbId, highscore: state.highscore));
+      listeners: widget.isMatch ? _matchListeners() : _practiceListeners(),
+      child: Scaffold(body: Stack(children: [_gameLayout(), if (widget.isMatch) const CountdownOverlay()])),
+    );
+  }
 
-            await _showFinishDialog(context, state);
+  Widget _gameLayout() {
+    return Column(
+      children: [
+        widget.isMatch ? const MatchBar() : _GameBar(protein: widget.protein),
+        const Divider(),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const divW = GameLayout.dividerWidth;
+              final panelW = constraints.maxWidth - 2 * divW;
+              final rightFraction = 1 - _leftFraction - _midFraction;
 
-            if (!context.mounted) return;
-            context.read<ExperimentBloc>().add(ExperimentClose());
-            context.read<SessionManagerBloc>().add(SessionManagerClose());
-            Navigator.of(context).pop();
-          },
+              return Row(
+                children: [
+                  SizedBox(
+                    width: panelW * _leftFraction,
+                    child: SequencePanel(
+                      protein: widget.protein,
+                      onResidueTap: (position) => _structureController?.selectResidueAtGymPosition(position),
+                    ),
+                  ),
+                  _DragDivider(
+                    onDragDelta: (dx) => setState(() {
+                      _leftFraction = (_leftFraction + dx / panelW).clamp(
+                        GameLayout.minPanelFraction,
+                        1 - _midFraction - GameLayout.minPanelFraction,
+                      );
+                    }),
+                  ),
+                  SizedBox(
+                    width: panelW * _midFraction,
+                    child: StructurePanel(
+                      controller: _structureController,
+                      loadError: _structureLoadError,
+                      onResidueClick: _showPickerFromStructure,
+                    ),
+                  ),
+                  _DragDivider(
+                    onDragDelta: (dx) => setState(() {
+                      _midFraction = (_midFraction + dx / panelW).clamp(
+                        GameLayout.minPanelFraction,
+                        1 - _leftFraction - GameLayout.minPanelFraction,
+                      );
+                    }),
+                  ),
+                  SizedBox(width: panelW * rightFraction, child: const HistoryPanel()),
+                ],
+              );
+            },
+          ),
         ),
       ],
-      child: Scaffold(
-        body: Column(
-          children: [
-            _GameBar(protein: widget.protein),
-            const Divider(),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  const divW = GameLayout.dividerWidth;
-                  final panelW = constraints.maxWidth - 2 * divW;
-                  final rightFraction = 1 - _leftFraction - _midFraction;
-
-                  return Row(
-                    children: [
-                      SizedBox(
-                        width: panelW * _leftFraction,
-                        child: SequencePanel(
-                          protein: widget.protein,
-                          onResidueTap: (position) => _structureController?.selectResidueAtGymPosition(position),
-                        ),
-                      ),
-                      _DragDivider(
-                        onDragDelta: (dx) => setState(() {
-                          _leftFraction = (_leftFraction + dx / panelW).clamp(
-                            GameLayout.minPanelFraction,
-                            1 - _midFraction - GameLayout.minPanelFraction,
-                          );
-                        }),
-                      ),
-                      SizedBox(
-                        width: panelW * _midFraction,
-                        child: StructurePanel(
-                          controller: _structureController,
-                          loadError: _structureLoadError,
-                          onResidueClick: _showPickerFromStructure,
-                        ),
-                      ),
-                      _DragDivider(
-                        onDragDelta: (dx) => setState(() {
-                          _midFraction = (_midFraction + dx / panelW).clamp(
-                            GameLayout.minPanelFraction,
-                            1 - _leftFraction - GameLayout.minPanelFraction,
-                          );
-                        }),
-                      ),
-                      SizedBox(width: panelW * rightFraction, child: const HistoryPanel()),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -333,9 +393,9 @@ class _GameBar extends StatelessWidget {
                   Text("ROUND", style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(width: 8),
                   Text(
-                    "${state.turnCount} / ${GameRules.maxTurns}",
+                    "${state.turnCount} / ${state.maxTurns}",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: state.turnCount >= GameRules.turnWarningThreshold
+                      color: state.turnCount >= state.maxTurns - GameRules.turnWarningMargin
                           ? Theme.of(context).colorScheme.error
                           : Theme.of(context).colorScheme.primary,
                     ),

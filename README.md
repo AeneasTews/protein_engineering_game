@@ -94,6 +94,37 @@ Web output lands in `app/build/web`; desktop builds land in `app/build/{macos,li
   a `master`-channel Flutter image (or install `fvm`+`master` inside the image) before it will produce a working
   frontend container again.
 
+## Hosting a LAN match (Mutation Race)
+
+Two players race on the same protein with the same turn budget and one shared clock (default: 15 turns, 4:00).
+Each sees the other's best score live, but their mutations stay hidden until the end. When the clock runs out,
+or both players are out of turns, the higher best score wins. Ties go to whoever needed fewer turns, then to
+whoever got there first. Solo play is still available from the lobby as **Practice**.
+
+1. **Host** (any machine on the network, can also be one of the players):
+   ```bash
+   cd backend && ./run.sh      # listens on 0.0.0.0:8000 and broadcasts a discovery beacon on UDP 47800
+   ```
+   The backend keeps live matches in memory, so it must run as a **single process** (one uvicorn worker; don't
+   put it behind multi-worker gunicorn).
+2. **Players** run the desktop app (`fvm flutter run -d linux|macos|windows`, or a release build), enter a
+   nickname, pick the server from *Servers on your network* (or type the host's IP), and connect. In the lobby,
+   challenge an online player, optionally choosing the protein.
+
+**Firewall:** the host must accept **TCP 8000**, and each **player** machine must accept inbound **UDP 47800**
+for auto-discovery. Fedora example: `sudo firewall-cmd --add-port=8000/tcp` on the host and
+`sudo firewall-cmd --add-port=47800/udp` on the players. Without the UDP rule, just type the host's address.
+
+Match settings are environment variables on the host: `MUTATEIT_MATCH_TURNS`, `MUTATEIT_MATCH_DURATION_S`,
+`MUTATEIT_COUNTDOWN_S`, `MUTATEIT_DISCONNECT_GRACE_S` (a disconnected player forfeits after this),
+`MUTATEIT_DISABLE_BEACON=1`, and `MUTATEIT_PORT` (the port advertised in the beacon, if you change uvicorn's).
+
+**Playing alone / testing:** `uv run python scripts/bot.py` (in `backend/`) starts a bot opponent that accepts
+every challenge and plays a greedy random walk; `--challenge <nickname>` makes it challenge you instead.
+
+**Tests:** `uv run pytest` in `backend/`. `fvm flutter test` in `app/` runs the client unit tests. The
+end-to-end client test additionally needs a live backend; see the header of `app/test/multiplayer_test.dart`.
+
 ## Deployment
 
 Set the following environment variables before deploying:

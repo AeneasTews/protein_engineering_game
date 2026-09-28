@@ -10,11 +10,36 @@ sealed class ExperimentEvent extends Equatable {
 final class ExperimentStart extends ExperimentEvent {
   final int sessionId;
   final Protein protein;
+  final int maxTurns;
+  // Set for match sessions: evaluations need the player's token, and running out of turns
+  // locks the experiment instead of finishing it (the match decides when it's over).
+  final String? playerToken;
+  final List<TrajectoryStep> initialHistory;
+  final String? lockReason;
 
-  const ExperimentStart({required this.sessionId, required this.protein});
+  const ExperimentStart({
+    required this.sessionId,
+    required this.protein,
+    this.maxTurns = GameRules.maxTurns,
+    this.playerToken,
+    this.initialHistory = const [],
+    this.lockReason,
+  });
+
+  bool get isMatch => playerToken != null;
 
   @override
-  List<Object?> get props => [sessionId, protein];
+  List<Object?> get props => [sessionId, protein, maxTurns, playerToken, initialHistory, lockReason];
+}
+
+final class ExperimentLockChanged extends ExperimentEvent {
+  // null unlocks; otherwise the reason is shown on the submit button.
+  final String? lockReason;
+
+  const ExperimentLockChanged(this.lockReason);
+
+  @override
+  List<Object?> get props => [lockReason];
 }
 
 final class MutationChange extends ExperimentEvent {

@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../constants.dart';
 import '../../data/models/experiment_entry.dart';
 import '../../data/models/protein.dart';
+import '../../data/models/trajectory_step.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
 import '../../data/repositories/session_repository.dart';
 
@@ -11,11 +12,13 @@ part "experiment_state.dart";
 
 class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
   final SessionRepository _sessionRepository;
+  String? _playerToken;
 
   ExperimentBloc({required SessionRepository sessionRepository})
     : _sessionRepository = sessionRepository,
       super(const ExperimentInitial()) {
     on<ExperimentStart>(_onStart);
+    on<ExperimentLockChanged>(_onLockChanged);
     on<MutationChange>(_onMutationChange);
     on<MutationSetLoad>(_onMutationSetLoad);
     on<Evaluate>(_onEvaluate);
@@ -25,19 +28,35 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
     });
   }
 
+  bool get _isMatch => _playerToken != null;
+
   void _onStart(ExperimentStart event, Emitter<ExperimentState> emit) {
     if (state is! ExperimentInitial) return;
+    _playerToken = event.playerToken;
+    final history = event.initialHistory
+        .map((step) => ExperimentEntry(mutant: step.mutant, score: step.score, turnCount: step.turnCount))
+        .toList();
     emit(
       ExperimentActive(
         sessionId: event.sessionId,
         protein: event.protein,
         currentMutations: const [],
-        history: const [],
-        lastScore: 1.0,
-        turnCount: 0,
+        history: history,
+        lastScore: history.isEmpty ? 1.0 : history.last.score,
+        turnCount: history.isEmpty ? 0 : history.last.turnCount,
+        maxTurns: event.maxTurns,
         isEvaluating: false,
+        lockReason: event.lockReason,
       ),
     );
+  }
+
+  void _onLockChanged(ExperimentLockChanged event, Emitter<ExperimentState> emit) {
+    final current = state;
+    if (current is! ExperimentActive) return;
+    // Once out of turns, a match experiment stays locked whatever the clock says.
+    if (event.lockReason == null && current.turnCount >= current.maxTurns) return;
+    emit(current.withLock(event.lockReason));
   }
 
   void _onMutationChange(MutationChange event, Emitter<ExperimentState> emit) {
@@ -70,7 +89,9 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
 
   Future<void> _onEvaluate(Evaluate event, Emitter<ExperimentState> emit) async {
     final current = state;
-    if (current is! ExperimentActive || current.isEvaluating || current.currentMutations.isEmpty) return;
+    if (current is! ExperimentActive || current.isEvaluating || current.isLocked || current.currentMutations.isEmpty) {
+      return;
+    }
 
     emit(current.copyWith(isEvaluating: true));
 
@@ -80,6 +101,7 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
         sessionId: current.sessionId,
         pdbId: current.protein.pdbId,
         mutant: mutant,
+        playerToken: _playerToken,
       );
 
       final newEntry = ExperimentEntry(
@@ -90,20 +112,25 @@ class ExperimentBloc extends Bloc<ExperimentEvent, ExperimentState> {
 
       final updatedHistory = [...current.history, newEntry];
 
-      if (evaluationResult.turnCount >= GameRules.maxTurns) {
+      final outOfTurns = evaluationResult.turnCount >= current.maxTurns;
+      if (outOfTurns && !_isMatch) {
         _finishExperiment(updatedHistory, emit);
-      } else {
-        emit(
-          current.copyWith(
-            history: updatedHistory,
-            lastScore: evaluationResult.score,
-            turnCount: evaluationResult.turnCount,
-            isEvaluating: false,
-          ),
-        );
+        return;
       }
-    } on ApiException {
-      emit(current.copyWith(isEvaluating: false));
+      // Build on the latest state: the match may have locked it while the request was in flight.
+      final latest = state is ExperimentActive ? state as ExperimentActive : current;
+      final updated = latest.copyWith(
+        history: updatedHistory,
+        lastScore: evaluationResult.score,
+        turnCount: evaluationResult.turnCount,
+        isEvaluating: false,
+      );
+      emit(outOfTurns ? updated.withLock(MatchText.outOfTurns) : updated);
+    } on ApiException catch (e) {
+      // 409: the match clock has run out (or not started) on the server.
+      final latest = state is ExperimentActive ? state as ExperimentActive : current;
+      final reverted = latest.copyWith(isEvaluating: false);
+      emit(_isMatch && e.statusCode == 409 ? reverted.withLock(MatchText.matchOver) : reverted);
     }
   }
 

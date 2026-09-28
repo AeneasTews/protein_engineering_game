@@ -30,10 +30,16 @@ class SessionRepository {
     return Highscore.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<EvaluationResult> evaluate({required int sessionId, required String pdbId, required String mutant}) async {
+  // Match sessions only accept evaluations carrying the owning player's token.
+  Future<EvaluationResult> evaluate({
+    required int sessionId,
+    required String pdbId,
+    required String mutant,
+    String? playerToken,
+  }) async {
     final response = await _client.post(
       Uri.parse("$baseUrl/evaluate"),
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "application/json", "X-Player-Token": ?playerToken},
       body: jsonEncode({"session_id": sessionId, "pdb_id": pdbId, "mutant": mutant}),
     );
     _assertOk(response);
