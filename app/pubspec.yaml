@@ -41,10 +41,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   fl_chart: ^1.2.0
   url_launcher: ^6.3.1
-  flutter_scene: ^0.20.0
-  vector_math: ^2.1.4
   web_socket_channel: ^3.0.3
   shared_preferences: ^2.5.5
+  bio_flutter:
+    path: ../../bio_flutter
 
 dev_dependencies:
   flutter_test:

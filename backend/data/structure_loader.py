@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import json
 import logging
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 
 import gemmi
@@ -18,67 +16,20 @@ FETCH_TIMEOUT_SECONDS = 30
 
 
 @dataclass
-class ExtractedAtom:
-    element: str
-    atom_name: str
-    x: float
-    y: float
-    z: float
+class ResidueMapping:
+    """Where one position of the game's wildtype sequence lives in the served mmCIF."""
 
-    def to_json(self) -> dict:
-        return {
-            "element": self.element,
-            "atom_name": self.atom_name,
-            "x": self.x,
-            "y": self.y,
-            "z": self.z,
-        }
-
-
-class SecondaryStructure(Enum):
-    LOOP = "loop"
-    HELIX = "helix"
-    SHEET = "sheet"
-
-
-@dataclass
-class ExtractedResidue:
     position: int  # 1-based, matches wildtype_sequence[position - 1]
-    name: str  # 3-letter
-    secondary_structure: SecondaryStructure
-    atom: ExtractedAtom  # residue's CA
-
-    def to_json(self) -> dict:
-        return {
-            "position": self.position,
-            "name": self.name,
-            "secondary_structure": self.secondary_structure.value,
-            "atom": self.atom.to_json(),
-        }
+    chain_id: str  # label_asym_id
+    auth_seq_id: int
+    insertion_code: str  # "" when the residue has none
 
 
 @dataclass
 class ExtractedStructure:
     pdb_id: str
-    residues: list[ExtractedResidue]
-
-    def to_json(self) -> dict:
-        return {"pdb_id": self.pdb_id, "residues": [r.to_json() for r in self.residues]}
-
-    @staticmethod
-    def from_json(data: dict) -> ExtractedStructure:
-        return ExtractedStructure(
-            pdb_id=data["pdb_id"],
-            residues=[
-                ExtractedResidue(
-                    position=r["position"],
-                    name=r["name"],
-                    secondary_structure=SecondaryStructure(r["secondary_structure"]),
-                    atom=ExtractedAtom(**r["atom"]),
-                )
-                for r in data["residues"]
-            ],
-        )
+    cif: str  # first model, matched chain and residue window only; no ligands or waters
+    residues: list[ResidueMapping]
 
 
 def _fetch_cif_text(pdb_id: str) -> str | None:
@@ -102,36 +53,32 @@ def _polymer_sequence(polymer: list[gemmi.Residue]) -> str:
     return "".join(_one_letter(r.name) for r in polymer)
 
 
-def _primary_ca(residue: gemmi.Residue) -> gemmi.Atom | None:
-    for atom in residue:
-        if atom.name == "CA":
-            return atom
-    return None
+def _has_ca(residue: gemmi.Residue) -> bool:
+    return any(atom.name == "CA" for atom in residue)
 
 
-def _secondary_structure_at(
-    st: gemmi.Structure, chain_name: str, seq_num: int
-) -> SecondaryStructure:
-    for helix in st.helices:
-        if (
-            helix.start.chain_name == chain_name
-            and helix.start.res_id.seqid.num is not None
-            and helix.end.res_id.seqid.num is not None
-            and helix.start.res_id.seqid.num <= seq_num <= helix.end.res_id.seqid.num
-        ):
-            return SecondaryStructure.HELIX
-    for sheet in st.sheets:
-        for strand in sheet.strands:
-            if (
-                strand.start.chain_name == chain_name
-                and strand.start.res_id.seqid.num is not None
-                and strand.end.res_id.seqid.num is not None
-                and strand.start.res_id.seqid.num
-                <= seq_num
-                <= strand.end.res_id.seqid.num
-            ):
-                return SecondaryStructure.SHEET
-    return SecondaryStructure.LOOP
+def _trimmed_cif(
+    st: gemmi.Structure, chain_name: str, window: list[gemmi.Residue]
+) -> str:
+    """The structure cut down to what the game shows: model 1, one chain, the window's residues.
+
+    Header records (entities, helices, sheets) are kept so the client's mmCIF parser can
+    read secondary structure the same way it would from the original file.
+    """
+    keep = {(r.seqid.num, r.seqid.icode) for r in window}
+    trimmed = st.clone()
+    while len(trimmed) > 1:
+        del trimmed[1]
+    trimmed.remove_ligands_and_waters()
+    model = trimmed[0]
+    for name in [c.name for c in model if c.name != chain_name]:
+        model.remove_chain(name)
+    chain = model[chain_name]
+    for i in reversed(range(len(chain))):
+        if (chain[i].seqid.num, chain[i].seqid.icode) not in keep:
+            del chain[i]
+    trimmed.remove_empty_chains()
+    return trimmed.make_mmcif_document().as_string()
 
 
 def _extract_window(
@@ -143,37 +90,28 @@ def _extract_window(
 ) -> ExtractedStructure:
     residues = []
     for i, residue in enumerate(window):
-        ca = _primary_ca(residue)
-        if ca is None:
-            # some can exist without CA, instead of skipping entire structure, just skip one
+        if not _has_ca(residue):
+            # Still drawn if it has other atoms, but not selectable from the sequence panel.
             logger.warning(
-                "%s: polymer residue %s %d has no resolved CA; skipping",
+                "%s: polymer residue %s %d has no resolved CA; not mapping it",
                 pdb_id,
                 residue.name,
                 residue.seqid.num,
             )
             continue
-
         if residue.seqid.num is None:
             continue
-
         residues.append(
-            ExtractedResidue(
+            ResidueMapping(
                 position=start_position + i,
-                name=residue.name,
-                secondary_structure=_secondary_structure_at(
-                    st, chain_name, residue.seqid.num
-                ),
-                atom=ExtractedAtom(
-                    element=ca.element.name,
-                    atom_name=ca.name,
-                    x=ca.pos.x,
-                    y=ca.pos.y,
-                    z=ca.pos.z,
-                ),
+                chain_id=residue.subchain,
+                auth_seq_id=residue.seqid.num,
+                insertion_code=residue.seqid.icode.strip(),
             )
         )
-    return ExtractedStructure(pdb_id=pdb_id, residues=residues)
+    return ExtractedStructure(
+        pdb_id=pdb_id, cif=_trimmed_cif(st, chain_name, window), residues=residues
+    )
 
 
 # Parses structure, checks if wildtype seq is substring of sequence with coordinates or the other way around. returns whichever is shorter
@@ -230,7 +168,8 @@ def extract_structure(
 
 
 def _cache_path(cache_dir: Path, pdb_id: str) -> Path:
-    return cache_dir / f"{pdb_id}.json"
+    # The raw download is cached, so changes to extraction never require refetching.
+    return cache_dir / f"{pdb_id}.cif"
 
 
 def load_and_validate_structures(
@@ -241,28 +180,18 @@ def load_and_validate_structures(
 
     for pdb_id, protein in proteins.items():
         cache_file = _cache_path(cache_dir, pdb_id)
-
         if cache_file.exists():
-            try:
-                structures[pdb_id] = ExtractedStructure.from_json(
-                    json.loads(cache_file.read_text())
-                )
+            cif_text = cache_file.read_text()
+        else:
+            cif_text = _fetch_cif_text(pdb_id)
+            if cif_text is None:
                 continue
-            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                logger.warning(
-                    "%s: failed to read cached structure (%s); refetching...", pdb_id, e
-                )
-
-        cif_text = _fetch_cif_text(pdb_id)
-        if cif_text is None:
-            continue
+            cache_file.write_text(cif_text)
 
         structure = extract_structure(pdb_id, cif_text, protein.wildtype_sequence)
         if structure is None:
             continue
-
         structures[pdb_id] = structure
-        cache_file.write_text(json.dumps(structure.to_json()))
 
     logger.info(
         "Validated structures for %d/%d proteins", len(structures), len(proteins)

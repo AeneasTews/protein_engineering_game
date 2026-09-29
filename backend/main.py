@@ -156,18 +156,13 @@ async def get_structure(pdb_id: str):
     structure = STRUCTURES_DB[pdb_id]
     return StructureResponse(
         pdb_id=structure.pdb_id,
+        cif=structure.cif,
         residues=[
-            ResidueSchema(
+            ResidueMappingSchema(
                 position=r.position,
-                name=r.name,
-                secondary_structure=r.secondary_structure.value,
-                atom=AtomSchema(
-                    element=r.atom.element,
-                    atom_name=r.atom.atom_name,
-                    x=r.atom.x,
-                    y=r.atom.y,
-                    z=r.atom.z,
-                ),
+                chain_id=r.chain_id,
+                auth_seq_id=r.auth_seq_id,
+                insertion_code=r.insertion_code,
             )
             for r in structure.residues
         ],

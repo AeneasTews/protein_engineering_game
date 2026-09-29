@@ -95,23 +95,21 @@ class LeaderboardEntrySchema(BaseModel):
     draws: int
 
 
-class AtomSchema(BaseModel):
-    element: str = Field(..., description="Element symbol; 'C'")
-    atom_name: str = Field(..., description="Atom name within the residue; 'CA'")
-    x: float
-    y: float
-    z: float
-
-
-class ResidueSchema(BaseModel):
+class ResidueMappingSchema(BaseModel):
     position: int = Field(
         ..., description="1-based position, matches wildtype_sequence[position - 1]"
     )
-    name: str = Field(..., description="3-letter residue name")
-    secondary_structure: str = Field(..., description="'loop', 'helix', 'sheet'")
-    atom: AtomSchema = Field(..., description="The residue's CA")
+    chain_id: str = Field(..., description="mmCIF label_asym_id of the residue")
+    auth_seq_id: int = Field(..., description="mmCIF auth_seq_id of the residue")
+    insertion_code: str = Field(..., description="PDB insertion code; empty if none")
 
 
 class StructureResponse(BaseModel):
     pdb_id: str = Field(..., description="4-character PDB ID", examples=["1E0L"])
-    residues: list[ResidueSchema]
+    cif: str = Field(
+        ...,
+        description="mmCIF of the first model, restricted to the game's chain and residues",
+    )
+    residues: list[ResidueMappingSchema] = Field(
+        ..., description="Where each wildtype_sequence position is in the mmCIF"
+    )

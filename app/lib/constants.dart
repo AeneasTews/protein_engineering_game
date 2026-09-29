@@ -1,7 +1,6 @@
-import "dart:math" as math;
-import "dart:ui" show Size;
+import "dart:ui" show Color, Size;
 
-import "package:vector_math/vector_math.dart";
+import "package:bio_flutter/protein_viewer.dart" show CartoonStyle;
 
 // ---------------------------------------------------------------------------
 // Game rules
@@ -181,81 +180,14 @@ class StructureViewerLayout {
 }
 
 // ---------------------------------------------------------------------------
-// 3D scene
+// 3D structure (bio_flutter's ProteinViewer)
 // ---------------------------------------------------------------------------
 
-class CameraLayout {
-  CameraLayout._();
+class StructureStyle {
+  StructureStyle._();
 
-  static const double minPitch = -math.pi / 2 + 0.05;
-  static const double maxPitch = math.pi / 2 - 0.05;
-  static const double defaultYaw = 0.4;
-  static const double defaultPitch = 0.35;
-  static const double defaultMinDistance = 0.5;
-  static const double defaultMaxDistance = 10000.0;
-
-  static const double orbitSensitivity = 0.01;
-  static const double zoomFactorMin = 0.8;
-  static const double zoomFactorMax = 1.2;
-  static const double scrollZoomSensitivity = 0.001;
-
-  static const double fovNearMinimum = 0.05;
-  static const double fovNearDistanceFactor = 0.01;
-  static const double fovFarDistanceFactor = 20.0;
-  static const double fovFarBase = 100.0;
-
-  // Initial framing when a structure loads: how far back the camera starts,
-  // and how close it's allowed to zoom in, both relative to the structure's
-  // bounding-sphere radius.
-  static const double initialDistanceFactor = 2.4;
-  static const double minDistanceFactor = 0.05;
-  // Used only when a structure has no residues to compute a real bounding
-  // sphere from.
-  static const double fallbackBoundingRadius = 50.0;
-}
-
-class CartoonGeometry {
-  CartoonGeometry._();
-
-  static const double loopRadius = 0.3;
-  static const double helixHalfWidth = 0.9;
-  static const double helixHalfThickness = 0.28;
-  static const double sheetHalfWidth = 0.8;
-  static const double sheetHalfThickness = 0.2;
-
-  static const int ellipseProfileSegments = 12;
-  static const int loopRadialSegments = 8;
-
-  static const double materialRoughness = 0.65;
-  static const double materialMetallic = 0.0;
-}
-
-// Vector4 has no const constructor, so these are static final rather than
-// static const, unlike the rest of this file.
-class CartoonColors {
-  CartoonColors._();
-
-  static final Vector4 helix = Vector4(0.85, 0.25, 0.25, 1.0);
-  static final Vector4 sheet = Vector4(0.90, 0.80, 0.20, 1.0);
-  static final Vector4 loop = Vector4(0.80, 0.80, 0.80, 1.0);
-}
-
-class MarkerLayout {
-  MarkerLayout._();
-
-  static const double selectionRadius = 1.3;
-  static const double mutationRadius = 0.9;
-}
-
-class MarkerColors {
-  MarkerColors._();
-
-  static final Vector4 selection = Vector4(0.1, 0.95, 0.95, 1.0);
-  static final Vector4 mutation = Vector4(1.0, 0.55, 0.0, 1.0);
-}
-
-class SceneLighting {
-  SceneLighting._();
-
-  static final Vector3 directionalLightDirection = Vector3(-0.4, -1.0, -0.3);
+  // Precedence in the viewer is hover, then selection, then highlights (pending mutations),
+  // then secondary structure.
+  static const Color mutationColor = Color(0xFFFF8C00);
+  static const CartoonStyle cartoon = CartoonStyle(selectionColor: Color(0xFF1AF2F2), hoverColor: Color(0xFFFFFFFF));
 }

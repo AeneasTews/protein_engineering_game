@@ -1,17 +1,13 @@
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:flutter_scene/scene.dart";
-import "package:vector_math/vector_math.dart" as vm;
+import "package:bio_flutter/protein_viewer.dart" show ProteinViewerController;
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../constants.dart";
 import "../data/models/protein.dart";
 import "../data/repositories/protein_repository.dart";
-import "../structure/models/molecular_structure.dart";
-import "../structure/scene/cartoon_builder.dart";
-import "../structure/scene/orbit_camera.dart";
-import "../structure/scene/structure_controller.dart";
+import "../data/models/protein_structure.dart";
 import "../blocs/match/match_bloc.dart";
 import "../widgets/history_panel.dart";
 import "match_result_screen.dart";
@@ -32,8 +28,11 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  StructureController? _structureController;
+  final ProteinViewerController _viewerController = ProteinViewerController();
+  ProteinStructure? _structure;
   Object? _structureLoadError;
+  // The residue selected in the sequence panel or the 3D view, as a sequence position.
+  int? _selectedPosition;
 
   double _leftFraction = GameLayout.initialLeftFraction;
   double _midFraction = GameLayout.initialMidFraction;
@@ -46,72 +45,35 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
-    _structureController?.cameraController.dispose();
-    _structureController?.dispose();
+    _viewerController.dispose();
     super.dispose();
   }
 
   Future<void> _loadStructure() async {
     try {
-      final structureFuture = context.read<ProteinRepository>().getStructure(widget.protein.pdbId);
-      await Scene.initializeStaticResources();
-      final structure = await structureFuture;
+      final structure = await context.read<ProteinRepository>().getStructure(widget.protein.pdbId);
       if (!mounted) return;
-      _onStructureLoaded(structure);
+      setState(() => _structure = structure);
     } catch (e) {
       if (!mounted) return;
       setState(() => _structureLoadError = e);
     }
   }
 
-  void _onStructureLoaded(MolecularStructure structure) {
-    final CartoonScene cartoon = buildCartoonScene(structure);
-    final Scene scene = Scene()
-      ..directionalLight = DirectionalLight(direction: SceneLighting.directionalLightDirection);
-    for (final node in cartoon.nodes) {
-      scene.add(node);
-    }
-
-    final (vm.Vector3 center, double radius) = _boundingSphere(structure);
-    final OrbitCameraController cameraController = OrbitCameraController(
-      target: center,
-      distance: radius * CameraLayout.initialDistanceFactor,
-    )..minDistance = radius * CameraLayout.minDistanceFactor;
-
-    final StructureController controller = StructureController(
-      structure: structure,
-      cartoon: cartoon,
-      scene: scene,
-      cameraController: cameraController,
-    );
-
-    final experimentState = context.read<ExperimentBloc>().state;
-    if (experimentState is ExperimentActive) {
-      controller.updateMutationMarkers(experimentState.currentMutations.map((m) => m.$1));
-    }
-
-    setState(() => _structureController = controller);
+  void _selectFromSequence(int position) {
+    setState(() => _selectedPosition = position);
+    final key = _structure?.keyAt(position);
+    if (key != null) _viewerController.focusResidue(key);
   }
 
-  (vm.Vector3, double) _boundingSphere(MolecularStructure structure) {
-    final List<vm.Vector3> positions = [for (final residue in structure.residues) residue.alphaCarbon.position];
-    if (positions.isEmpty) {
-      return (vm.Vector3.zero(), CameraLayout.fallbackBoundingRadius);
-    }
-
-    final vm.Vector3 center = vm.Vector3.zero();
-    for (final position in positions) {
-      center.add(position);
-    }
-    center.scale(1.0 / positions.length);
-
-    double radius = 0.0;
-    for (final position in positions) {
-      final double distance = position.distanceTo(center);
-      if (distance > radius) radius = distance;
-    }
-    return (center, radius == 0.0 ? CameraLayout.fallbackBoundingRadius : radius);
-  }
+  // Changing the pending mutations clears the selection, as it always has.
+  BlocListener _clearSelectionOnMutation() => BlocListener<ExperimentBloc, ExperimentState>(
+    listenWhen: (prev, next) =>
+        prev is ExperimentActive && next is ExperimentActive && prev.currentMutations != next.currentMutations,
+    listener: (context, state) {
+      if (_selectedPosition != null) setState(() => _selectedPosition = null);
+    },
+  );
 
   List<BlocListener> _matchListeners() => [
     BlocListener<MatchBloc, MatchState>(
@@ -190,7 +152,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
-      listeners: widget.isMatch ? _matchListeners() : _practiceListeners(),
+      listeners: [_clearSelectionOnMutation(), ...widget.isMatch ? _matchListeners() : _practiceListeners()],
       child: Scaffold(body: Stack(children: [_gameLayout(), if (widget.isMatch) const CountdownOverlay()])),
     );
   }
@@ -211,10 +173,7 @@ class _GameScreenState extends State<GameScreen> {
                 children: [
                   SizedBox(
                     width: panelW * _leftFraction,
-                    child: SequencePanel(
-                      protein: widget.protein,
-                      onResidueTap: (position) => _structureController?.selectResidueAtGymPosition(position),
-                    ),
+                    child: SequencePanel(protein: widget.protein, onResidueTap: _selectFromSequence),
                   ),
                   _DragDivider(
                     onDragDelta: (dx) => setState(() {
@@ -227,8 +186,11 @@ class _GameScreenState extends State<GameScreen> {
                   SizedBox(
                     width: panelW * _midFraction,
                     child: StructurePanel(
-                      controller: _structureController,
+                      structure: _structure,
                       loadError: _structureLoadError,
+                      controller: _viewerController,
+                      selectedPosition: _selectedPosition,
+                      onSelectedPositionChanged: (position) => setState(() => _selectedPosition = position),
                       onResidueClick: _showPickerFromStructure,
                     ),
                   ),

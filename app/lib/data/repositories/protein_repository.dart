@@ -1,8 +1,8 @@
 import "dart:convert";
 import "package:http/http.dart" as http;
-import "../../structure/models/molecular_structure.dart";
 import "../models/highscore.dart";
 import "../models/protein.dart";
+import "../models/protein_structure.dart";
 import "../api_exception.dart";
 
 class ProteinRepository {
@@ -30,10 +30,10 @@ class ProteinRepository {
     return highscoresJson.map((key, value) => MapEntry(key, Highscore.fromJson(value as Map<String, dynamic>)));
   }
 
-  Future<MolecularStructure> getStructure(String pdbId) async {
+  Future<ProteinStructure> getStructure(String pdbId) async {
     final response = await _client.get(Uri.parse("$baseUrl/structure/$pdbId"));
     _assertOk(response);
-    return MolecularStructure.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    return ProteinStructure.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   void _assertOk(http.Response response) {
