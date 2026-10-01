@@ -90,8 +90,7 @@ class _StructurePanelState extends State<StructurePanel> {
   Map<ResidueKey, Color> _mutationHighlights(ProteinStructure structure, ExperimentState state) {
     if (state is! ExperimentActive) return const {};
     return {
-      for (final (position, _) in state.currentMutations)
-        ?structure.keyAt(position): StructureStyle.mutationColor,
+      for (final (position, _) in state.currentMutations) ?structure.keyAt(position): StructureStyle.mutationColor,
     };
   }
 

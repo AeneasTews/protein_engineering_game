@@ -29,7 +29,10 @@ class LobbyBloc extends Bloc<LobbyEvent, LobbyState> {
 
   Future<void> _onLeaderboardRequested(LobbyLeaderboardRequested event, Emitter<LobbyState> emit) async {
     try {
-      emit(state.copyWith(leaderboard: await _matchRepository.getLeaderboard()));
+      // Await first: `state` must be read after the request, or lobby updates that arrived
+      // in the meantime (e.g. players going back to idle after a match) would be overwritten.
+      final leaderboard = await _matchRepository.getLeaderboard();
+      emit(state.copyWith(leaderboard: leaderboard));
     } catch (_) {
       // Keep the last known leaderboard; it's refreshed after every match.
     }

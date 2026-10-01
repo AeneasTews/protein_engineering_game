@@ -78,7 +78,44 @@ def _trimmed_cif(
         if (chain[i].seqid.num, chain[i].seqid.icode) not in keep:
             del chain[i]
     trimmed.remove_empty_chains()
+    _clip_secondary_structure(trimmed, chain_name, list(chain))
     return trimmed.make_mmcif_document().as_string()
+
+
+def _clip_to_residues(
+    start: gemmi.AtomAddress,
+    end: gemmi.AtomAddress,
+    chain_name: str,
+    residues: list[gemmi.Residue],
+) -> bool:
+    """Moves the range ends onto the first/last kept residue inside it; False if none is."""
+    if start.chain_name != chain_name:
+        return False
+    lo, hi = start.res_id.seqid, end.res_id.seqid
+    inside = [r for r in residues if not (r.seqid < lo) and not (hi < r.seqid)]
+    if not inside:
+        return False
+    start.res_id = inside[0]
+    end.res_id = inside[-1]
+    return True
+
+
+def _clip_secondary_structure(
+    st: gemmi.Structure, chain_name: str, residues: list[gemmi.Residue]
+) -> None:
+    # gemmi drops a helix or strand whose first or last residue was trimmed away, which
+    # would turn e.g. a helix starting just before the window into loop.
+    for i in reversed(range(len(st.helices))):
+        helix = st.helices[i]
+        if not _clip_to_residues(helix.start, helix.end, chain_name, residues):
+            del st.helices[i]
+    for s in reversed(range(len(st.sheets))):
+        strands = st.sheets[s].strands
+        for i in reversed(range(len(strands))):
+            if not _clip_to_residues(strands[i].start, strands[i].end, chain_name, residues):
+                del strands[i]
+        if len(strands) == 0:
+            del st.sheets[s]
 
 
 def _extract_window(

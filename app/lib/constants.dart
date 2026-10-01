@@ -1,6 +1,7 @@
-import "dart:ui" show Color, Size;
+import "dart:ui" show Size;
 
 import "package:bio_flutter/protein_viewer.dart" show CartoonStyle;
+import "package:flutter/material.dart" show Color, Colors;
 
 // ---------------------------------------------------------------------------
 // Game rules
@@ -186,8 +187,9 @@ class StructureViewerLayout {
 class StructureStyle {
   StructureStyle._();
 
-  // Precedence in the viewer is hover, then selection, then highlights (pending mutations),
-  // then secondary structure.
-  static const Color mutationColor = Color(0xFFFF8C00);
-  static const CartoonStyle cartoon = CartoonStyle(selectionColor: Color(0xFF1AF2F2), hoverColor: Color(0xFFFFFFFF));
+  // Matches bio_flutter's protein_viewer example: default cartoon colors (orange selection,
+  // cyan hover), purple annotations, black outlines and pencil shading. Precedence in the
+  // viewer is hover, then selection, then highlights (pending mutations), then secondary structure.
+  static const Color mutationColor = Colors.purpleAccent;
+  static const CartoonStyle cartoon = CartoonStyle(outlineColor: Colors.black, pencilTexture: true);
 }
