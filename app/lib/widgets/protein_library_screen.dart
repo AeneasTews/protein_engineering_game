@@ -5,6 +5,7 @@ import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../constants.dart";
+import "../score_format.dart";
 import "../data/models/highscore.dart";
 import "../data/models/protein.dart";
 import "../data/repositories/session_repository.dart";
@@ -167,9 +168,7 @@ class _ProteinCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                highscore != null
-                    ? "🏆 ${highscore!.username} ${highscore!.score.toStringAsFixed(GameRules.scoreDecimalPlaces)}"
-                    : "🏆 —",
+                highscore != null ? "🏆 ${highscore!.username} ${formatScore(highscore!.score)}" : "🏆 —",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(overflow: TextOverflow.ellipsis),
               ),
             ],

@@ -8,7 +8,7 @@ class SequencePanel extends StatelessWidget {
   final Protein protein;
 
   final void Function(int position)? onResidueTap;
-  // Shown in the same color as the selection in the 3D viewer.
+  // The residue last clicked, highlighted in its own color.
   final int? selectedPosition;
 
   const SequencePanel({super.key, required this.protein, this.onResidueTap, this.selectedPosition});
@@ -82,8 +82,7 @@ class _MutationTile extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         minimumSize: Size.zero,
-        backgroundColor: StructureStyle.mutationColor,
-        foregroundColor: StructureStyle.onHighlightColor,
+        backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label), const Icon(Icons.close)]),
     );
@@ -214,17 +213,19 @@ class _ResidueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isSelected || isMutated ? StructureStyle.onHighlightColor : null;
+    final textColor = isSelected ? SequencePanelColors.onSelection : null;
     return ElevatedButton(
       onPressed: () {
         onTap?.call();
         _showAminoAcidPicker(context);
       },
       style: ElevatedButton.styleFrom(
-        // Same precedence as the 3D viewer: selection over mutation.
+        // The residue just clicked stands out from the already mutated ones (selection wins).
         backgroundColor: isSelected
-            ? StructureStyle.selectionColor
-            : (isMutated ? StructureStyle.mutationColor : Theme.of(context).colorScheme.onInverseSurface),
+            ? SequencePanelColors.selection
+            : (isMutated
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : Theme.of(context).colorScheme.onInverseSurface),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
       ),

@@ -23,6 +23,8 @@ class GameRules {
   // Used only in the history chart's hover tooltip, which shows one more
   // digit of precision than the summary displays.
   static const int scoreDecimalPlacesDetailed = 3;
+  // Scores are presented as a thermal stability (see score_format.dart).
+  static const String scoreUnit = "°C";
 }
 
 // ---------------------------------------------------------------------------
@@ -190,10 +192,15 @@ class StructureStyle {
   // Colors follow bio_flutter's protein_viewer example (default cartoon colors: orange selection,
   // cyan hover; purple annotations), with pencil shading and a light outline that stays visible
   // on the dark background. Precedence in the viewer is hover, then selection, then highlights
-  // (pending mutations), then secondary structure; the sequence panel uses the same colors.
+  // (pending mutations), then secondary structure.
   static const Color mutationColor = Colors.purpleAccent;
   static const CartoonStyle cartoon = CartoonStyle(outlineColor: Color(0xFFBDBDBD), pencilTexture: true);
-  static Color get selectionColor => cartoon.selectionColor;
-  // Text on mutation/selection colored tiles.
-  static const Color onHighlightColor = Colors.black;
+}
+
+class SequencePanelColors {
+  SequencePanelColors._();
+
+  // The residue last clicked; mutated residues use the theme's primaryContainer (purple).
+  static const Color selection = Color(0xFFFFB74D);
+  static const Color onSelection = Colors.black87;
 }

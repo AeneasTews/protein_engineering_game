@@ -3,10 +3,10 @@ import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/lobby/lobby_bloc.dart";
 import "../constants.dart";
+import "../score_format.dart";
 import "../data/models/match_models.dart";
 import "../data/models/protein.dart";
 import "../data/models/trajectory_step.dart";
-import "match_widgets.dart";
 
 class MatchResultScreen extends StatelessWidget {
   final MatchResult result;

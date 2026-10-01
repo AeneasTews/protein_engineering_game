@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../constants.dart";
+import "../score_format.dart";
 import "../data/models/experiment_entry.dart";
 
 class HistoryPanel extends StatelessWidget {
@@ -67,7 +68,7 @@ class _StatBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          score == null ? "-" : score!.toStringAsFixed(GameRules.scoreDecimalPlaces),
+          formatScore(score),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(color: _scoreColor(score, context)),
         ),
         Text(label, style: Theme.of(context).textTheme.labelLarge),
@@ -174,7 +175,7 @@ class _HistoryEntry extends StatelessWidget {
                       Padding(
                         padding: EdgeInsets.only(left: 4),
                         child: Text(
-                          experimentEntry.score.toStringAsFixed(GameRules.scoreDecimalPlaces),
+                          formatScore(experimentEntry.score),
                           style: Theme.of(
                             context,
                           ).textTheme.bodyLarge?.copyWith(color: _scoreColor(experimentEntry.score, context)),
@@ -262,7 +263,7 @@ class _HistoryGraph extends StatelessWidget {
                     return touchedSpots.map((LineBarSpot touchedBarSpot) {
                       final FlSpot spot = touchedBarSpot.bar.spots[touchedBarSpot.spotIndex];
                       final int turn = spot.x.toInt();
-                      final String score = spot.y.toStringAsFixed(GameRules.scoreDecimalPlacesDetailed);
+                      final String score = formatScore(spot.y, detailed: true);
                       return LineTooltipItem(
                         "Turn $turn\n",
                         TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer),

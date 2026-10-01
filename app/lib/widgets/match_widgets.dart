@@ -3,14 +3,13 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/match/match_bloc.dart";
 import "../constants.dart";
+import "../score_format.dart";
 
 String formatClock(Duration duration) {
   // Round up so the clock shows 0:00 only once time is really up.
   final seconds = (duration.inMilliseconds / 1000).ceil();
   return "${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, "0")}";
 }
-
-String formatScore(double? score) => score == null ? "-" : score.toStringAsFixed(GameRules.scoreDecimalPlaces);
 
 /// Replaces the practice round counter during a match: you vs. opponent around the match clock.
 class MatchBar extends StatelessWidget {

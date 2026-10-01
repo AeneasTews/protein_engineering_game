@@ -5,6 +5,7 @@ import "../blocs/experiment/experiment_bloc.dart";
 import "../blocs/protein_library/protein_library_bloc.dart";
 import "../blocs/session_manager/session_manager_bloc.dart";
 import "../constants.dart";
+import "../score_format.dart";
 import "../data/models/protein.dart";
 import "../data/repositories/protein_repository.dart";
 import "../data/models/protein_structure.dart";
@@ -328,10 +329,7 @@ class _ScoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [Text(label), Text(value.toStringAsFixed(GameRules.scoreDecimalPlaces))],
-    );
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label), Text(formatScore(value))]);
   }
 }
 

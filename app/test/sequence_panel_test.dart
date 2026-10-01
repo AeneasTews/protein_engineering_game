@@ -15,7 +15,7 @@ Color? _tileColor(WidgetTester tester, int position) {
 }
 
 void main() {
-  testWidgets("sequence tiles use the 3D viewer's mutation and selection colors", (tester) async {
+  testWidgets("mutated tiles are purple and the clicked tile is light orange", (tester) async {
     final bloc = ExperimentBloc(sessionRepository: SessionRepository(baseUrl: "http://unused"))
       ..add(const ExperimentStart(sessionId: 1, protein: _protein))
       ..add(const MutationChange(position: 2, aminoAcid: "A"))
@@ -34,13 +34,15 @@ void main() {
 
     await tester.pump();
     await pump(5);
-    expect(_tileColor(tester, 2), StructureStyle.mutationColor);
-    expect(_tileColor(tester, 5), StructureStyle.selectionColor);
-    expect(_tileColor(tester, 1), isNot(anyOf(StructureStyle.mutationColor, StructureStyle.selectionColor)));
+    final mutated = Theme.of(tester.element(find.byType(SequencePanel))).colorScheme.primaryContainer;
+    expect(_tileColor(tester, 2), mutated);
+    expect(_tileColor(tester, 5), SequencePanelColors.selection);
+    expect(_tileColor(tester, 1), isNot(anyOf(mutated, SequencePanelColors.selection)));
 
-    // As in the viewer, a selected mutated residue shows the selection color.
+    // The residue just clicked stands out even if it is already mutated.
     await pump(4);
-    expect(_tileColor(tester, 4), StructureStyle.selectionColor);
+    expect(_tileColor(tester, 4), SequencePanelColors.selection);
+    expect(_tileColor(tester, 2), mutated);
 
     // Closing a bloc never completes inside testWidgets' fake-async zone.
     await tester.runAsync(bloc.close);
