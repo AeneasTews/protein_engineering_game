@@ -56,6 +56,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: BlocBuilder<ConnectBloc, ConnectState>(
                 builder: (context, state) {
                   final connecting = state.status == ConnectStatus.connecting;
+                  final discoverySupported = context.read<ConnectBloc>().discoverySupported;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -73,33 +74,35 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         onSubmitted: (_) => _connect(),
                       ),
                       const SizedBox(height: 8),
-                      Text("Servers on your network", style: textTheme.labelLarge),
-                      const SizedBox(height: 4),
-                      if (state.discovered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "Searching… or enter the host's address below",
-                                  style: textTheme.bodyMedium,
+                      if (discoverySupported) ...[
+                        Text("Servers on your network", style: textTheme.labelLarge),
+                        const SizedBox(height: 4),
+                        if (state.discovered.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Searching… or enter the host's address below",
+                                    style: textTheme.bodyMedium,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      for (final server in state.discovered)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.dns_outlined),
-                            title: Text(server.name),
-                            subtitle: Text("${server.host}:${server.port}"),
-                            onTap: () => setState(() => _addressController.text = "${server.host}:${server.port}"),
+                        for (final server in state.discovered)
+                          Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.dns_outlined),
+                              title: Text(server.name),
+                              subtitle: Text("${server.host}:${server.port}"),
+                              onTap: () => setState(() => _addressController.text = "${server.host}:${server.port}"),
+                            ),
                           ),
-                        ),
+                      ],
                       const SizedBox(height: 12),
                       TextField(
                         controller: _addressController,

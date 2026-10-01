@@ -120,6 +120,15 @@ whoever got there first. Solo play is still available from the lobby as **Practi
 for auto-discovery. Fedora example: `sudo firewall-cmd --add-port=8000/tcp` on the host and
 `sudo firewall-cmd --add-port=47800/udp` on the players. Without the UDP rule, just type the host's address.
 
+**Playing in a browser** instead of the desktop app: build the web app with multiplayer switched on and let
+the backend serve it, then players open `http://<host-ip>:8000` (nothing to install, no UDP needed; the
+server address is pre-filled with the page's host):
+```bash
+cd app && fvm flutter build web --dart-define=MULTIPLAYER=true
+cd ../backend && MUTATEIT_WEB_DIR=../app/build/web ./run.sh
+```
+Web builds without `MULTIPLAYER=true` (like the public deployment) start straight in single-player Practice.
+
 Match settings are environment variables on the host: `MUTATEIT_MATCH_TURNS`, `MUTATEIT_MATCH_DURATION_S`,
 `MUTATEIT_COUNTDOWN_S`, `MUTATEIT_DISCONNECT_GRACE_S` (a disconnected player forfeits after this),
 `MUTATEIT_DISABLE_BEACON=1`, and `MUTATEIT_PORT` (the port advertised in the beacon, if you change uvicorn's).

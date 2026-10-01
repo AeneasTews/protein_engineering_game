@@ -33,18 +33,21 @@ class ConnectBloc extends Bloc<ConnectEvent, ConnectState> {
     on<ConnectRequested>(_onConnectRequested);
   }
 
+  // False in browsers, which can't receive the UDP beacon.
+  bool get discoverySupported => _discovery.isSupported;
+
   Future<void> _onStarted(ConnectStarted event, Emitter<ConnectState> emit) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       emit(
         state.copyWith(
-          savedAddress: prefs.getString(_addressKey) ?? Config.apiBaseUrl,
+          savedAddress: prefs.getString(_addressKey) ?? Config.defaultServerAddress,
           savedNickname: prefs.getString(_nicknameKey) ?? "",
           preferencesLoaded: true,
         ),
       );
     } catch (_) {
-      emit(state.copyWith(savedAddress: Config.apiBaseUrl, preferencesLoaded: true));
+      emit(state.copyWith(savedAddress: Config.defaultServerAddress, preferencesLoaded: true));
     }
 
     await emit.forEach<DiscoveredServer>(

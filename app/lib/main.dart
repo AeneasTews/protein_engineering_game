@@ -4,7 +4,6 @@ import "blocs/session_manager/session_manager_bloc.dart";
 import "blocs/protein_library/protein_library_bloc.dart";
 import "data/repositories/session_repository.dart";
 import "data/services/lan_discovery.dart";
-import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "config.dart";
@@ -41,8 +40,8 @@ class _AppState extends State<App> {
     home: home,
   );
 
-  // The public web deployment stays single-player: browsers can't discover LAN servers, and
-  // its proxy isn't set up for the multiplayer WebSocket.
+  // Web builds without MULTIPLAYER=true (the public deployment) stay single-player: its proxy
+  // isn't set up for the multiplayer WebSocket.
   Widget _practiceOnlyApp() {
     const baseUrl = Config.apiBaseUrl;
     return MultiRepositoryProvider(
@@ -65,7 +64,7 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return _practiceOnlyApp();
+    if (!Config.multiplayer) return _practiceOnlyApp();
 
     final connection = _connection;
     if (connection == null) {

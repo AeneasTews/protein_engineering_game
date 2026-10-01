@@ -63,3 +63,10 @@ def test_trimming_keeps_secondary_structure_of_served_residues(client):
         assert _secondary_structure(served, chain.name, list(chain)) == _secondary_structure(
             raw, chain.name, raw_residues
         ), pdb_id
+
+
+def test_web_build_is_served_without_shadowing_the_api(client):
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "<title>MutateIt</title>" in page.text
+    assert client.get("/proteins").headers["content-type"].startswith("application/json")

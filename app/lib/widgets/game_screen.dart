@@ -173,7 +173,11 @@ class _GameScreenState extends State<GameScreen> {
                 children: [
                   SizedBox(
                     width: panelW * _leftFraction,
-                    child: SequencePanel(protein: widget.protein, onResidueTap: _selectFromSequence),
+                    child: SequencePanel(
+                      protein: widget.protein,
+                      onResidueTap: _selectFromSequence,
+                      selectedPosition: _selectedPosition,
+                    ),
                   ),
                   _DragDivider(
                     onDragDelta: (dx) => setState(() {

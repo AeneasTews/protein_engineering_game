@@ -8,8 +8,10 @@ class SequencePanel extends StatelessWidget {
   final Protein protein;
 
   final void Function(int position)? onResidueTap;
+  // Shown in the same color as the selection in the 3D viewer.
+  final int? selectedPosition;
 
-  const SequencePanel({super.key, required this.protein, this.onResidueTap});
+  const SequencePanel({super.key, required this.protein, this.onResidueTap, this.selectedPosition});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class SequencePanel extends StatelessWidget {
         children: [
           _MutationBar(),
           const Divider(),
-          _SequenceEditor(protein: protein, onResidueTap: onResidueTap),
+          _SequenceEditor(protein: protein, onResidueTap: onResidueTap, selectedPosition: selectedPosition),
         ],
       ),
     );
@@ -80,7 +82,8 @@ class _MutationTile extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         minimumSize: Size.zero,
-        backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
+        backgroundColor: StructureStyle.mutationColor,
+        foregroundColor: StructureStyle.onHighlightColor,
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label), const Icon(Icons.close)]),
     );
@@ -90,8 +93,9 @@ class _MutationTile extends StatelessWidget {
 class _SequenceEditor extends StatelessWidget {
   final Protein protein;
   final void Function(int position)? onResidueTap;
+  final int? selectedPosition;
 
-  const _SequenceEditor({required this.protein, this.onResidueTap});
+  const _SequenceEditor({required this.protein, this.onResidueTap, this.selectedPosition});
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +123,7 @@ class _SequenceEditor extends StatelessWidget {
                   position: position,
                   wildtypeAa: wildtypeAa,
                   isMutated: isMutated,
+                  isSelected: position == selectedPosition,
                   onTap: () => onResidueTap?.call(position),
                 );
               },
@@ -134,9 +139,16 @@ class _ResidueTile extends StatelessWidget {
   final int position;
   final String wildtypeAa;
   final bool isMutated;
+  final bool isSelected;
   final VoidCallback? onTap;
 
-  const _ResidueTile({required this.position, required this.wildtypeAa, required this.isMutated, this.onTap});
+  const _ResidueTile({
+    required this.position,
+    required this.wildtypeAa,
+    required this.isMutated,
+    required this.isSelected,
+    this.onTap,
+  });
 
   void _showAminoAcidPicker(BuildContext context) {
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -202,15 +214,17 @@ class _ResidueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isSelected || isMutated ? StructureStyle.onHighlightColor : null;
     return ElevatedButton(
       onPressed: () {
         onTap?.call();
         _showAminoAcidPicker(context);
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isMutated
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Theme.of(context).colorScheme.onInverseSurface,
+        // Same precedence as the 3D viewer: selection over mutation.
+        backgroundColor: isSelected
+            ? StructureStyle.selectionColor
+            : (isMutated ? StructureStyle.mutationColor : Theme.of(context).colorScheme.onInverseSurface),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UiLayout.cardBorderRadius)),
       ),
@@ -220,13 +234,17 @@ class _ResidueTile extends StatelessWidget {
           BlocBuilder<ExperimentBloc, ExperimentState>(
             builder: (context, state) {
               if (state is! ExperimentActive || !isMutated) {
-                return Text(wildtypeAa, style: Theme.of(context).textTheme.titleLarge);
+                return Text(wildtypeAa, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor));
               }
               final mutation = state.currentMutations.firstWhere((m) => m.$1 == position);
-              return Text(mutation.$2, style: Theme.of(context).textTheme.titleLarge);
+              return Text(mutation.$2, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor));
             },
           ),
-          Text(position.toString(), style: Theme.of(context).textTheme.labelMedium, overflow: TextOverflow.ellipsis),
+          Text(
+            position.toString(),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: textColor),
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

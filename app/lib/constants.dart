@@ -187,9 +187,13 @@ class StructureViewerLayout {
 class StructureStyle {
   StructureStyle._();
 
-  // Matches bio_flutter's protein_viewer example: default cartoon colors (orange selection,
-  // cyan hover), purple annotations, black outlines and pencil shading. Precedence in the
-  // viewer is hover, then selection, then highlights (pending mutations), then secondary structure.
+  // Colors follow bio_flutter's protein_viewer example (default cartoon colors: orange selection,
+  // cyan hover; purple annotations), with pencil shading and a light outline that stays visible
+  // on the dark background. Precedence in the viewer is hover, then selection, then highlights
+  // (pending mutations), then secondary structure; the sequence panel uses the same colors.
   static const Color mutationColor = Colors.purpleAccent;
-  static const CartoonStyle cartoon = CartoonStyle(outlineColor: Colors.black, pencilTexture: true);
+  static const CartoonStyle cartoon = CartoonStyle(outlineColor: Color(0xFFBDBDBD), pencilTexture: true);
+  static Color get selectionColor => cartoon.selectionColor;
+  // Text on mutation/selection colored tiles.
+  static const Color onHighlightColor = Colors.black;
 }

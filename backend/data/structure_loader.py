@@ -79,7 +79,27 @@ def _trimmed_cif(
             del chain[i]
     trimmed.remove_empty_chains()
     _clip_secondary_structure(trimmed, chain_name, list(chain))
-    return trimmed.make_mmcif_document().as_string()
+    document = trimmed.make_mmcif_document()
+    _use_author_numbering_for_ranges(document.sole_block())
+    return document.as_string()
+
+
+def _use_author_numbering_for_ranges(block: gemmi.cif.Block) -> None:
+    """Workaround for bio_flutter's mmCIF reader, which takes helix/strand bounds from
+    `*_label_seq_id` but identifies residues by `auth_seq_id`. Wherever the two numberings
+    differ (e.g. 4G3O: label 32 is author 472) no residue falls inside any range and the whole
+    protein renders as loop. Copying the author numbers into the label columns of just these two
+    categories makes both sides agree; `atom_site` is left untouched.
+    """
+    for category in ("_struct_conf.", "_struct_sheet_range."):
+        table = block.find_mmcif_category(category)
+        if not table:
+            continue
+        for end in ("beg", "end"):
+            label = table.find_column(f"{end}_label_seq_id")
+            author = table.find_column(f"{end}_auth_seq_id")
+            for i in range(len(label)):
+                label[i] = author[i]
 
 
 def _clip_to_residues(

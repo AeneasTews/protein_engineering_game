@@ -29,6 +29,7 @@ from db.db import (
 )
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from game import settings
 from game.discovery import run_beacon
 from game.matches import MatchManager
@@ -370,3 +371,11 @@ async def websocket_endpoint(websocket: WebSocket, token: str = ""):
         pass
     finally:
         await MATCH_MANAGER.disconnect(player, websocket)
+
+
+# Optionally serve the Flutter web build (MUTATEIT_WEB_DIR, e.g. ../app/build/web) so players can
+# join from a browser at this server's address. Mounted last, so the API routes above take precedence.
+WEB_DIR = os.environ.get("MUTATEIT_WEB_DIR")
+if WEB_DIR:
+    logger.info("Serving the web app from %s", WEB_DIR)
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

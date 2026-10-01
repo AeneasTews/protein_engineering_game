@@ -7,6 +7,8 @@ import "discovered_server.dart";
 /// Listens for the backend's UDP beacon. Discovery is best effort: if the socket can't be
 /// bound (e.g. blocked by the OS) the stream just stays empty and the user types the address.
 class LanDiscovery {
+  bool get isSupported => true;
+
   Stream<DiscoveredServer> discover() {
     RawDatagramSocket? socket;
     late final StreamController<DiscoveredServer> controller;

@@ -47,6 +47,13 @@ void main() {
         }
         // Most of the sequence must be selectable in 3D.
         expect(mapped, greaterThan(protein.wildtypeSequence.length * 0.8), reason: protein.pdbId);
+
+        // All of these are folded domains: header helices/strands must reach the parsed residues
+        // (they didn't for 4G3O, whose label and author numbering differ).
+        final labels = [for (final residue in residues.values) residue.secondaryStructure.name[0]].join();
+        // ignore: avoid_print
+        print("${protein.pdbId} $labels");
+        expect(labels.replaceAll("l", "").length, greaterThan(labels.length * 0.2), reason: protein.pdbId);
       }
     },
   );

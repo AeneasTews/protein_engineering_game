@@ -8,6 +8,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 os.environ["DB_PATH"] = str(Path(tempfile.mkdtemp(prefix="mutateit-test-")) / "test.sqlite3")
 os.environ["MUTATEIT_DISABLE_BEACON"] = "1"
+WEB_DIR = Path(tempfile.mkdtemp(prefix="mutateit-web-"))
+(WEB_DIR / "index.html").write_text("<!doctype html><title>MutateIt</title>")
+os.environ["MUTATEIT_WEB_DIR"] = str(WEB_DIR)
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
