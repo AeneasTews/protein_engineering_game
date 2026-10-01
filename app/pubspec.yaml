@@ -43,8 +43,12 @@ dependencies:
   url_launcher: ^6.3.1
   web_socket_channel: ^3.0.3
   shared_preferences: ^2.5.5
+  # Protein structure viewer from the open PR biocentral/bio_flutter#7 (head branch on the fork);
+  # pubspec.lock pins the commit. Switch to the upstream repo/pub release once it is merged.
   bio_flutter:
-    path: ../../bio_flutter
+    git:
+      url: https://github.com/AeneasTews/bio_flutter.git
+      ref: feat/protein-structure-viewer
 
 dev_dependencies:
   flutter_test:

@@ -10,7 +10,7 @@ Players select a protein from the library, enter a username, then iteratively in
 
 - Flutter, on the `master` channel via [`fvm`](https://fvm.app/) — required, since `flutter_scene` needs Flutter GPU/Impeller, not yet on `stable`
 - [flutter_bloc](https://pub.dev/packages/flutter_bloc) for state management
-- [`bio_flutter`](https://github.com/biocentral/bio_flutter)'s `ProteinViewer` for 3D structure rendering (path dependency on `../../bio_flutter`; see `lib/widgets/structure_panel.dart`)
+- [`bio_flutter`](https://github.com/biocentral/bio_flutter)'s `ProteinViewer` for 3D structure rendering (git dependency on the branch of the open PR [biocentral/bio_flutter#7](https://github.com/biocentral/bio_flutter/pull/7) until it is merged; see `lib/widgets/structure_panel.dart`)
 - Communicates with the FastAPI backend over HTTP
 
 ## Development

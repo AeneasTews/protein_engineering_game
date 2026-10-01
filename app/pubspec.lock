@@ -36,9 +36,11 @@ packages:
   bio_flutter:
     dependency: "direct main"
     description:
-      path: "../../bio_flutter"
-      relative: true
-    source: path
+      path: "."
+      ref: "feat/protein-structure-viewer"
+      resolved-ref: a0f119ac28ff019be952bbe0e1a09244caa68e8b
+      url: "https://github.com/AeneasTews/bio_flutter.git"
+    source: git
     version: "0.0.12"
   bloc:
     dependency: "direct main"
